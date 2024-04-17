@@ -4,19 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="790062d1-3eac-45d2-9664-133ab5dfac73" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/degenerate_crypto_daytrader.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/logic_protocols/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/logic_protocols/buy_protocols.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/logic_protocols/scan_protocols.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/logic_protocols/sell_protocols.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/readme.md" afterDir="false" />
+    <list default="true" id="790062d1-3eac-45d2-9664-133ab5dfac73" name="Changes" comment="First few hours, made logic function for scanning when to sell">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -64,6 +53,19 @@
       <option name="presentableId" value="Default" />
       <updated>1713303426262</updated>
     </task>
+    <task id="LOCAL-00001" summary="First few hours, made logic function for scanning when to sell">
+      <option name="closed" value="true" />
+      <created>1713331488488</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1713331488488</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="First few hours, made logic function for scanning when to sell" />
+    <option name="LAST_COMMIT_MESSAGE" value="First few hours, made logic function for scanning when to sell" />
   </component>
 </project>
