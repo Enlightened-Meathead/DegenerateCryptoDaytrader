@@ -15,7 +15,11 @@ To Do:
 - logging system that logs all the data to a spreadsheet that includes the date bought and sold, price bought and sold old, profit or loss percent and value
 - a way to interface with on desktop wallets that are gui based or websites to allow automated trading
 
-First Steps:
+ccxt: library that allows me to do trades on exchanges!!!!!!!
+  - use initially to just get prices, see if you can then use ccxt for the buy and sell function on and exchange, then make a gui interface app so use a no kyc dekstop wallet like atomic
+- rsi scan interface
+- current price for the asset scan
+
 - user menu selecting the following info:
   - What currency are you buying
   - What buy order function?
@@ -24,8 +28,9 @@ First Steps:
   - what sell order conditional close?
   - profit loss reallocation function
 
-- Function protocols for buying and selling, the logic engine basically 
-  - buy protocol functions
-  - sell protocol functions
-  - profit loss reallocation function
-  - testing function with spoof numbers given by the user to test how the program works 
+
+### Completed
+- basic buy and rsi based buy logic scan functions
+- basic sell and ladder ascending profit logic scan functions
+- profit loss allocators that tell what to buy back in with if swing trading and what to sell if profit harvesting
+- 

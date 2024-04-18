@@ -9,7 +9,16 @@ def time_to_seconds(time_string):
     return total_seconds
 
 
+# RSI asset scan : returns the current RSI for the asset for the user defined span of time
+def rsi_scan(asset, time_span):
+    # Go out on the internet and gather the RSI for the asset based on the time frame specified
+    # initiate RSI scan
+    test_rsi = input("Test RSI: ")
+    return test_rsi
+
+
 # Asset monitor scan: argument will be the asset once testing of logic is complete
+# argument will be the asset being traded
 def current_price_scan():
     test_price = input("Current test price: ")
     return test_price
@@ -35,10 +44,9 @@ def basic_sell_scan(bought_price, percent_wanted, percent_loss_limit):
     while not sell_signal:
         # Calculates the potential profit or loss percentage
         percent_difference = current_percent_difference(bought_price)
-        print(percent_difference)
         if percent_difference > percent_wanted or percent_difference < percent_loss_limit:
             sell_signal = True
-            # initiate sell function
+            return sell_signal
     return current_percent_difference
 
 
@@ -80,8 +88,8 @@ def ladder_sell_scan(bought_price, percent_wanted, percent_loss_limit, positive_
             # If the timer expires after the percent wanted has been reached, sell
             if time.time() >= end_time:
                 sell_signal = True
-                # Initiate Sell Order
                 print("Sold due to timer expiring")
+                return sell_signal
             else:
                 time.sleep(sleep_duration)
                 # Select the highest percentage profit the asset has reached and use it to calculate the difference
@@ -100,10 +108,10 @@ def ladder_sell_scan(bought_price, percent_wanted, percent_loss_limit, positive_
                 # If the negative step value is hit, initiate a sell order
                 elif new_percent_difference < negative_step_gain:
                     sell_signal = True
-                    # Initiate sell order
                     print("sold due to negative step gain")
+                    return sell_signal
         elif percent_changed <= percent_loss_limit:
             sell_signal = True
-            # Initiate the sell
             print("sold due to percent loss limit")
+            return sell_signal
         time.sleep(sleep_duration)
