@@ -1,5 +1,9 @@
 # Scans that repeatedly look for the desired outcome and returns the value based on the asset given
+
 import time
+import asyncio
+import websockets
+import json
 
 
 def time_to_seconds(time_string):
@@ -9,19 +13,46 @@ def time_to_seconds(time_string):
     return total_seconds
 
 
+# Attempted Webscraping, worked, but would have to tweak user agent quite a bit  most likely
+''' 
+    url = data_urls.asset_url_pair[asset]
+    page_to_scrape = requests.get(url, headers=user_agent)
+    soup = BeautifulSoup(page_to_scrape.text, "html.parser")
+    html_price = soup.find('div', attrs={'data-test': 'instrument-price-last'})
+    return html_price 
+'''
+
+
 # RSI asset scan : returns the current RSI for the asset for the user defined span of time
+# For now, just start with hourly RSI calculation to estimate RSI for the past 14 hours, experiment with time intervals
+# later.
 def rsi_scan(asset, time_span):
     # Go out on the internet and gather the RSI for the asset based on the time frame specified
     # initiate RSI scan
     test_rsi = input("Test RSI: ")
     return test_rsi
 
+# Asynchronous websocket connection through coinbase that returns the price of the given ticker pair every 5 seconds
+async def current_price_scan():
+    uri = "wss://ws-feed.exchange.coinbase.com"
+    subscribe_message = json.dumps({
+        "type": "subscribe",
+        "product_ids": ["ETH-USD"],
+        "channels": ["ticker_batch"]
+    })
+    async with websockets.connect(uri) as websocket:
+        await websocket.send(subscribe_message)
+        print("Websocket  connection established")
+        while True:
+            response = await websocket.recv()
+            json_response = json.loads(response)
+            # Check if message is a ticker message then parse the price
+            if 'type' in json_response and json_response['type'] == 'ticker' and 'price' in json_response:
+                price = json_response['price']
+                print(price)
 
-# Asset monitor scan: argument will be the asset once testing of logic is complete
-# argument will be the asset being traded
-def current_price_scan():
-    test_price = input("Current test price: ")
-    return test_price
+
+asyncio.run(current_price_scan())
 
 
 # Calculate the difference in percentage from the price bought to the current value of the asset

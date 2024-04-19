@@ -4,12 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="790062d1-3eac-45d2-9664-133ab5dfac73" name="Changes" comment="First few hours, made logic function for scanning when to sell">
-      <change afterPath="$PROJECT_DIR$/logic_protocols/logging_functions.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/logic_protocols/profit_loss_functions.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/logic_protocols/remote_permission_functions.py" afterDir="false" />
+    <list default="true" id="790062d1-3eac-45d2-9664-133ab5dfac73" name="Changes" comment="Finished the basic buy function, the rsi based buy signal function, and the profit and loss calculation function and capital allocation swing trade function as well as the profit harvest function if not swing trading. Various planning shenanigans and flowcharts as well.">
+      <change afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/data_urls.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/logic_protocols/buy_protocols.py" beforeDir="false" afterPath="$PROJECT_DIR$/logic_protocols/buy_protocols.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/logic_protocols/scan_protocols.py" beforeDir="false" afterPath="$PROJECT_DIR$/logic_protocols/scan_protocols.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/readme.md" beforeDir="false" afterPath="$PROJECT_DIR$/readme.md" afterDir="false" />
     </list>
@@ -77,11 +75,20 @@
       <option name="project" value="LOCAL" />
       <updated>1713333272129</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="Finished the basic buy function, the rsi based buy signal function, and the profit and loss calculation function and capital allocation swing trade function as well as the profit harvest function if not swing trading. Various planning shenanigans and flowcharts as well.">
+      <option name="closed" value="true" />
+      <created>1713408815828</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1713408815828</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="First few hours, made logic function for scanning when to sell" />
-    <option name="LAST_COMMIT_MESSAGE" value="First few hours, made logic function for scanning when to sell" />
+    <MESSAGE value="Finished the basic buy function, the rsi based buy signal function, and the profit and loss calculation function and capital allocation swing trade function as well as the profit harvest function if not swing trading. Various planning shenanigans and flowcharts as well." />
+    <option name="LAST_COMMIT_MESSAGE" value="Finished the basic buy function, the rsi based buy signal function, and the profit and loss calculation function and capital allocation swing trade function as well as the profit harvest function if not swing trading. Various planning shenanigans and flowcharts as well." />
   </component>
 </project>
