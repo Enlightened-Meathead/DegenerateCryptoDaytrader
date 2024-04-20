@@ -4,12 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="790062d1-3eac-45d2-9664-133ab5dfac73" name="Changes" comment="Finished the basic buy function, the rsi based buy signal function, and the profit and loss calculation function and capital allocation swing trade function as well as the profit harvest function if not swing trading. Various planning shenanigans and flowcharts as well.">
-      <change afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+    <list default="true" id="790062d1-3eac-45d2-9664-133ab5dfac73" name="Changes" comment="Struggled and toiled till victory to find a non-api key based way to have a price scan function that returns price data then parses just the current price.">
       <change afterPath="$PROJECT_DIR$/data_urls.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/logic_protocols/scan_protocols.py" beforeDir="false" afterPath="$PROJECT_DIR$/logic_protocols/scan_protocols.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/readme.md" beforeDir="false" afterPath="$PROJECT_DIR$/readme.md" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -44,6 +42,7 @@
     "Python.main.executor": "Run",
     "Python.profit_loss_functions.executor": "Run",
     "Python.scan_protocols.executor": "Run",
+    "Python.scrape_resources.executor": "Run",
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "git-widget-placeholder": "main",
@@ -83,12 +82,32 @@
       <option name="project" value="LOCAL" />
       <updated>1713408815828</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="Struggled and toiled till victory to find a non-api key based way to have a price scan function that returns price data then parses just the current price.">
+      <option name="closed" value="true" />
+      <created>1713495115210</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1713495115210</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="First few hours, made logic function for scanning when to sell" />
     <MESSAGE value="Finished the basic buy function, the rsi based buy signal function, and the profit and loss calculation function and capital allocation swing trade function as well as the profit harvest function if not swing trading. Various planning shenanigans and flowcharts as well." />
-    <option name="LAST_COMMIT_MESSAGE" value="Finished the basic buy function, the rsi based buy signal function, and the profit and loss calculation function and capital allocation swing trade function as well as the profit harvest function if not swing trading. Various planning shenanigans and flowcharts as well." />
+    <MESSAGE value="Struggled and toiled till victory to find a non-api key based way to have a price scan function that returns price data then parses just the current price." />
+    <option name="LAST_COMMIT_MESSAGE" value="Struggled and toiled till victory to find a non-api key based way to have a price scan function that returns price data then parses just the current price." />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/scrape_resources.py</url>
+          <line>22</line>
+          <option name="timeStamp" value="5" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
 </project>
