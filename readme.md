@@ -19,15 +19,6 @@ To Do:
   - use initially to just get prices, see if you can then use ccxt for the buy and sell function on and exchange, then make a gui interface app so use a no kyc dekstop wallet like atomic
 - rsi scan interface
 
-- user menu selecting the following info:
-  - What currency are you buying
-  - What buy order function?
-  - what buy order conditional close?
-  - what sell order function?
-  - what sell order conditional close?
-  - profit loss reallocation function
-  - how much capital do you want to trade with?
-  - once the buy or sell scan is triggered how long to wait for approval before dropping and rescanning ? possibly, or make this fixed
 
 Possibly add modules for leveraged trading?
 

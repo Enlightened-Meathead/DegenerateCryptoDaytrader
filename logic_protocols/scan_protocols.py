@@ -77,6 +77,7 @@ def basic_sell_scan(bought_price, percent_wanted, percent_loss_limit):
     while not sell_signal:
         # Calculates the potential profit or loss percentage
         percent_difference = current_percent_difference(bought_price)
+        # If the profit percentage is greated than the desired gains or below the stop loss, sell
         if percent_difference > percent_wanted or percent_difference < percent_loss_limit:
             sell_signal = True
             return sell_signal
