@@ -39,8 +39,8 @@ End goal is have a one liner or cli menu that confirms the user input then passe
 posssibly add modules for leveraged trading?
 
 ### Completed
-- basic buy and rsi based buy logic scan functions
+-` basic buy and rsi based buy logic scan functions
 - basic sell and ladder ascending profit logic scan functions
 - profit loss allocators that tell what to buy back in with if swing trading and what to sell if profit harvesting
 - web socket based price scanner that returns the current spot price every 5 seconds for the selected asset.
-- 
+- `

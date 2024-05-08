@@ -1,5 +1,15 @@
 import click
 
+# python3 menu_test.py --bot_type exchange --asset bitcoin --capital dollars --start_type buy --buy_order_type rsi --sell_order_type ladder --percent_loss_limit 10 --profit_loss_function profit_harvest --initial_capital 100
+
+'''
+If the program is called with no options, start the menu
+        - if the menu option is no_menu, make all the required options required options within click
+            - if this is the case, then possible hold off on p
+    If the program is called with no_menu and options, check for missing options, print them, then abort if any are missing
+    If the program is called with menu and some options, start the menu but only for their missing 
+'''
+
 # Options that become required only if other options are called
 OPTION_DEPENDENCIES = {
     'basic_buy': ['basic_buy_price'],
@@ -9,62 +19,76 @@ OPTION_DEPENDENCIES = {
                'ladder_step_sensitivity', 'ladder_timer_sensitivity'],
     'swing_trade': ['swing_trade_skim']
 }
+REQUIRED_OPTIONS = ['bot_type', 'asset', 'capital', 'start_type', 'buy_order_type', 'sell_order_type',
+                    'percent_loss_limit', 'profit_loss_function', 'initial_capital']
+
+total_missing_options = []
 
 
 # If an option is called that needs additional dependencies, add it to the list of missing options
 def validate_dependent_options(ctx, param, value):
+    global total_missing_options
     missing_options = []
     # Value is the name of the click context value, so that's why I'm using value for the key name
     if value in OPTION_DEPENDENCIES.keys():
-        click.echo(f"\nMissing the following options required for {value}:")
         for option in OPTION_DEPENDENCIES[value]:
             if option not in ctx.params:
-                click.echo(option)
+                total_missing_options.append(option)
                 missing_options.append(option)
-        raise click.BadParameter(f"With the {param.name} option, please supply the above stated options.")
+        if len(missing_options) > 0:
+            click.echo(f"\nWith the {value} choice for the {param.name} option, please supply the below stated"
+                       f" additionally required options:\n--------------------------")
+            for option in missing_options:
+                click.echo(option)
+            click.echo("\n")
+    return value
 
 
+# Callback for the menu argument that makes options required if the no_menu argument is passed
+def make_required(ctx, param, value):
+    global REQUIRED_OPTIONS
+    if value == "no_menu":
+        # If the user wants no menu, then make every option needed required in click.
+        for option in REQUIRED_OPTIONS:
+            for param in ctx.command.params:
+                if param.name == option:
+                    param.required = True
 
 @click.command()
+@click.argument("menu",
+                type=click.Choice(["menu", "no_menu"]),
+                callback=make_required,
+                default="menu")
 @click.option("--bot_type",
-              required=True,
               type=click.Choice(["exchange", "atomic", "notifier"]),
               help="Specify the type of bot")
 @click.option("--asset",
-              required=True,
               type=click.Choice(["bitcoin", "ethereum", "solana", "xrp", "cardano", "dogecoin", "shiba-inu", "monero"]),
               help="Specify the crypto asset to buy and sell")
 @click.option("--capital",
-              required=True,
               type=click.Choice(["dollars", "tether", "usdc", "dai"]),
               help="The type of capital you wish to buy the asset with and sell the asset for")
 @click.option("--start_type",
-              required=True,
               type=click.Choice(["buy", "sell", "previous"]),
               help="The starting order type")
 @click.option("--buy_order_type",
-              required=True,
               type=click.Choice(["basic_buy", "rsi_buy"]),
               callback=validate_dependent_options,
               help="The type of buy order scan type you'd like to monitor the asset with to alert a buy signal")
 @click.option("--sell_order_type",
-              required=True,
               type=click.Choice(["basic_sell", "ladder"]),
               callback=validate_dependent_options,
               help="The type of sell order scan type you'd like to  monitor the asset with to alert a sell signal")
 # Possibly refactor the name to stop_loss_limit later
 @click.option("--percent_loss_limit",
-              required=True,
               type=float,
               help="The percent you will allow your initial buy capital to drop by before selling at a loss"
               )
 @click.option("--profit_loss_function",
-              required=True,
               type=click.Choice(["profit_harvest", "swing_trade"]),
               callback=validate_dependent_options,
               help="The profit/loss reallocation protocol determining what to do with profits and losses post sell")
 @click.option("--initial_capital",
-              required=True,
               type=float,
               help="Specify the initial amount of capital you wish to place your buy order"
               )
@@ -132,11 +156,8 @@ def validate_dependent_options(ctx, param, value):
               )
 # Take every argument passed from click and make a key of the argument name and value of the argument value
 def one_liner_values(**kwargs):
-    return kwargs
+    print(kwargs)
 
 
-# user_inputs = {arg_name: arg_value for arg_name, arg_value in kwargs.items()}
 if __name__ == '__main__':
     one_liner_values()
-
-# python3 menu_test.py --bot_type exchange --asset bitcoin --capital dollars --start_type buy --buy_order_type rsi --sell_order_type ladder --percent_loss_limit 10 --profit_loss_function profit_harvest --initial_capital 100
