@@ -1,15 +1,41 @@
 import click
 
-# python3 menu_test.py --bot_type exchange --asset bitcoin --capital dollars --start_type buy --buy_order_type rsi --sell_order_type ladder --percent_loss_limit 10 --profit_loss_function profit_harvest --initial_capital 100
+# python3 menu_test.py --bot_type exchange --asset bitcoin --capital dollars --start_type buy --buy_order_type rsi_buy --sell_order_type ladder --percent_loss_limit 10 --profit_loss_function profit_harvest --initial_capital 100
+menu_banner = """
+$$$$$$                                                                
+$     $ $$$$$$  $$$$  $$$$$$ $    $ $$$$$$ $$$$$    $$   $$$$$ $$$$$$ 
+$     $ $      $    $ $      $$   $ $      $    $  $  $    $   $      
+$     $ $$$$$  $      $$$$$  $ $  $ $$$$$  $    $ $    $   $   $$$$$  
+$     $ $      $  $$$ $      $  $ $ $      $$$$$  $$$$$$   $   $      
+$     $ $      $    $ $      $   $$ $      $   $  $    $   $   $      
+$$$$$$  $$$$$$  $$$$  $$$$$$ $    $ $$$$$$ $    $ $    $   $   $$$$$$ 
 
-'''
-If the program is called with no options, start the menu
-        - if the menu option is no_menu, make all the required options required options within click
-            - if this is the case, then possible hold off on p
-    If the program is called with no_menu and options, check for missing options, print them, then abort if any are missing
-    If the program is called with menu and some options, start the menu but only for their missing 
-'''
+ $$$$$                                   
+$     $ $$$$$  $   $ $$$$$  $$$$$  $$$$  
+$       $    $  $ $  $    $   $   $    $ 
+$       $    $   $   $    $   $   $    $ 
+$       $$$$$    $   $$$$$    $   $    $ 
+$     $ $   $    $   $        $   $    $ 
+ $$$$$  $    $   $   $        $    $$$$  
 
+$$$$$$                                                        
+$     $   $$   $   $ $$$$$ $$$$$    $$   $$$$$  $$$$$$ $$$$$  
+$     $  $  $   $ $    $   $    $  $  $  $    $ $      $    $ 
+$     $ $    $   $     $   $    $ $    $ $    $ $$$$$  $    $ 
+$     $ $$$$$$   $     $   $$$$$  $$$$$$ $    $ $      $$$$$  
+$     $ $    $   $     $   $   $  $    $ $    $ $      $   $  
+$$$$$$  $    $   $     $   $    $ $    $ $$$$$  $$$$$$ $    $ 
+
+==================================================================
+BEFORE USING THIS PROGRAM, READ THE DOCUMENTATION AND/OR MAN PAGE!
+==================================================================
+"""
+'''
+    Once all options have been passed to click, review with the user for confirmation
+        if yes, move on. If no, ask the user which one they would like to change. Select that option, then reprompt the user for that option
+    Once all options have been gathered by click in either the cli one liner, a cli one liner with missing options corrected by the menu, or just the menu, pass them to the main logic modulea cli one liner with missing options corrected by the menu, or just the menu, pass them to the main logic module.
+'''
+# Right now, for one-liners make sure any additional option dependencies are declared before their parent option
 # Options that become required only if other options are called
 OPTION_DEPENDENCIES = {
     'basic_buy': ['basic_buy_price'],
@@ -48,16 +74,50 @@ def validate_dependent_options(ctx, param, value):
 def make_required(ctx, param, value):
     global REQUIRED_OPTIONS
     if value == "no_menu":
-        # If the user wants no menu, then make every option needed required in click.
+        # If the user wants no menu, then make every option needed to be required in click.
         for option in REQUIRED_OPTIONS:
             for param in ctx.command.params:
                 if param.name == option:
                     param.required = True
 
+
+# Check to see if there are any missing options. If so, abort the program.
+def check_missing_options():
+    global total_missing_options
+    if total_missing_options:
+        return True
+
+
+'''
+- for the menu, for every option, create a prompt with the message being the help message, the click choices the
+    prompt choice, then make the answer to that prompt equal to the parameter value for that parameters name then pass that option to click.
+    If the program is called with menu and some options, start the menu but only for their missing options
+        - say the user is missing some options, and tell them if they dont want this menu pass the argument no menu
+        - check if the passed options require optional dependencies. for every global total missing option, prompt the user to enter them
+'''
+
+
+# Click CLI menu
+def click_menu(ctx, param, value):
+    global REQUIRED_OPTIONS
+    global total_missing_options
+    make_required(ctx, param, value)
+    if value == 'menu':
+        click.echo(menu_banner)
+        for option in ctx.command.params:
+            # For every option in the click command that hasn't been given a value on the command line and is required:
+            if option.name not in ctx.params.keys() and option.name in REQUIRED_OPTIONS:
+                user_input = click.prompt(f"{option.help}", type=option.type)
+                # if the user input in a key in the option dependencies, for every dependent check if they are in the
+                # required options then prompt the user for them
+                ctx.params[option.name] = user_input
+    return ctx.params
+
+
 @click.command()
 @click.argument("menu",
                 type=click.Choice(["menu", "no_menu"]),
-                callback=make_required,
+                callback=click_menu,
                 default="menu")
 @click.option("--bot_type",
               type=click.Choice(["exchange", "atomic", "notifier"]),
@@ -154,10 +214,12 @@ def make_required(ctx, param, value):
               type=float,
               help="The percentage of profit you want to skim off to keep and not use to be swing traded."
               )
-# Take every argument passed from click and make a key of the argument name and value of the argument value
 def one_liner_values(**kwargs):
+    # take the dictionary of values from menu and compare it to the kwargs and any empty kwargs put the value in it
     print(kwargs)
+    return kwargs
 
 
 if __name__ == '__main__':
     one_liner_values()
+
