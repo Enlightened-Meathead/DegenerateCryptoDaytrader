@@ -4,8 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="790062d1-3eac-45d2-9664-133ab5dfac73" name="Changes" comment="Updated the missing required options error handling and created callback function for the menu argument">
+    <list default="true" id="790062d1-3eac-45d2-9664-133ab5dfac73" name="Changes" comment="Made initial user menu and improved some option dependency logic">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/logic_protocols/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/logic_protocols/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/logic_protocols/scan_protocols.py" beforeDir="false" afterPath="$PROJECT_DIR$/logic_protocols/scan_protocols.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/menu_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/menu_test.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -175,7 +178,15 @@
       <option name="project" value="LOCAL" />
       <updated>1715140953510</updated>
     </task>
-    <option name="localTasksCounter" value="10" />
+    <task id="LOCAL-00010" summary="Made initial user menu and improved some option dependency logic">
+      <option name="closed" value="true" />
+      <created>1715222844239</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1715222844239</updated>
+    </task>
+    <option name="localTasksCounter" value="11" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -187,7 +198,8 @@
     <MESSAGE value="Started the CLI user menu and did some brainstorming and outlining" />
     <MESSAGE value="Click based cli one liners working in test file." />
     <MESSAGE value="Updated the missing required options error handling and created callback function for the menu argument" />
-    <option name="LAST_COMMIT_MESSAGE" value="Updated the missing required options error handling and created callback function for the menu argument" />
+    <MESSAGE value="Made initial user menu and improved some option dependency logic" />
+    <option name="LAST_COMMIT_MESSAGE" value="Made initial user menu and improved some option dependency logic" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

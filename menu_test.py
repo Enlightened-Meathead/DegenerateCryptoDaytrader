@@ -117,7 +117,7 @@ def click_menu(ctx, param, value):
 @click.command()
 @click.argument("menu",
                 type=click.Choice(["menu", "no_menu"]),
-                callback=click_menu,
+                # callback=click_menu,
                 default="menu")
 @click.option("--bot_type",
               type=click.Choice(["exchange", "atomic", "notifier"]),
