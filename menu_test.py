@@ -164,6 +164,11 @@ def click_menu(ctx, param, value):
               required=False,
               type=float,
               help="The RSI you'd like to sell at if it stays at that RSI for the wait period")
+@click.option("--rsi_drop_limit",
+              required=False,
+              type=float,
+              help="The RSI you would not want to drop below after the wait period has expired in the RSI scan")
+
 @click.option("--rsi_wait_period",
               required=False,
               # Use a time check function

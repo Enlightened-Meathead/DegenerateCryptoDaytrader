@@ -1,4 +1,4 @@
-# NEED TO TEST: rsi_scan, rsi_buy_scan, ladder sell scan. Everything else WORKS!!!
+# NEED TO TEST: ladder sell scan. Everything else WORKS!!!
 
 
 # Scans that repeatedly look for the desired outcome and returns the value based on the asset given
@@ -6,8 +6,8 @@ import asyncio
 import time
 import websockets
 import json
-import requests
-from bs4 import BeautifulSoup
+import re
+from selenium import webdriver
 
 import data_urls
 
@@ -21,19 +21,6 @@ def time_to_seconds(time_string):
     hours, minutes, seconds = map(int, time_string.split(':'))
     total_seconds = hours * 3600 + minutes * 60 + seconds
     return total_seconds
-
-
-# RSI asset scan : returns the current RSI for the asset for the user defined span of time
-# For now, just start with hourly RSI calculation to estimate RSI for the past 14 hours, experiment with time intervals
-# later.
-def rsi_scan(asset, time_span):
-    # Go out on the internet and gather the RSI for the asset based on the time frame specified
-    # initiate RSI
-    page_to_scrape = requests.get("url", headers="user_agent")
-    soup = BeautifulSoup(page_to_scrape.text, "html.parser")
-    html_rsi = soup.find('tr', attrs={
-        'class': "datatable_cell__LJp3C !border-t-[#e6e9eb] !py-3 ltr:!text-right rtl:soft-ltr"})
-    return html_rsi
 
 
 # Asynchronous websocket connection through coinbase that returns the price of the given ticker pair every 5 seconds
@@ -80,29 +67,60 @@ def basic_buy_scan(asset, buy_price, sleep_duration):
         else:
             time.sleep(sleep_duration)
 
+
+# RSI buy scan : returns the current RSI for the asset for the user defined span of time and based on input signal to
+# buy. For now, just start with hourly RSI calculation to estimate RSI for the past 14 hours, experiment with time
+# intervals later.
+
+def rsi_buy_scan(asset, rsi_buy_number, rsi_drop_limit, rsi_wait_period):
+    # Set the Firefox browser to headless, try later
+    firefox_options = webdriver.FirefoxOptions()
+    firefox_options.add_argument('--headless')
+    # Launch firefox
+    driver = webdriver.Firefox()
+    # In the firefox browser, go to the desired asset URL
+    driver.get(data_urls.asset_url_pair.get(asset))
+    # On that page, find all the technical indicator rows in a table Iterate over every technical indicator,
+    # and return the RSI (Or whatever other technical indicator you want to return)
+    try:
+        buy_signal = False
+        while True:
+            rows = driver.find_elements("css selector", "tr.datatable_row__Hk3IV")
+            for row in rows:
+                # Check for RSI
+                if re.search(r"^RSI\(14\)", row.text):
+                    # Make the row text only the RSI, then somehow return the RSI without exiting the function
+                    rsi = float(re.search(r"\s(\d+\.\d+)\s", row.text).group(1).strip())
+                    # In the future save the current row.text then only make it reference that one row once it's found
+                    # to be more efficient
+                    print(rsi)
+                    if rsi <= rsi_buy_number:
+                        # If the buy signal hasn't been activated, activate and start the wait period.
+                        if not buy_signal:
+                            buy_signal = True
+                        # If the timer expires and the rsi_drop limit has not been reached, buy the asset
+                        elif rsi >= rsi_drop_limit:
+                            buy_signal = True
+                            print("Bought due to wait period expiring and drop limit not being hit")
+                            return buy_signal
+                            # Initiate buy Order
+                        else:
+                            buy_signal = False
+                            print("slept due to RSI below the drop limit")
+            #If buy signal is false, scan every 60 seconds, but if buy signal is True, then scan for the wait period
+            if not buy_signal:
+                time.sleep(20)
+            elif buy_signal:
+                time.sleep(time_to_seconds(rsi_wait_period))
+    except KeyboardInterrupt:
+        print("Exiting RSI technical indicator loop scan")
+    finally:
+        driver.quit()
+
+
 # Revival buy function: if an asset is sold due to a stop loss limit initiating the sell, buy back the asset at the
 # price it was sold at by the stop loss. Actually, the above can do that just fine, just need to link the buy price
 # to the stop loss limit last sell price
-
-# RSI buy function: Buy the asset when a certain user defined RSI is hit, the general recommended RSI to buy at is 30
-def rsi_buy_scan(asset, time_span, rsi_buy_number, rsi_drop_limit, wait_period, sleep_duration):
-    # If the RSI number is met, initiate a buy protocol once the asset goes back above the rsi number for a set period
-    buy_signal = False
-    while not buy_signal:
-        # If the RSI dips below the set number, start the wait period to make sure it's not going to dip way lower
-        if float(rsi_scan(asset, time_span)) <= rsi_buy_number:
-            time.sleep(time_to_seconds(wait_period))
-            # If the timer expires and the rsi_drop limit has not been reacher, buy the asset
-            if float(rsi_scan(asset, time_span)) >= rsi_drop_limit:
-                buy_signal = True
-                print("Bought due to wait period expiring and drop limit not being hit")
-                return buy_signal
-                # Initiate buy Order
-            else:
-                print("slept due to RSI below the drop limit")
-        else:
-            time.sleep(sleep_duration)
-
 
 '''
  Basic sell scan: given the users desired percentage gain from the bought price, send true once that percentage is met
