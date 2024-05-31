@@ -49,6 +49,7 @@ REQUIRED_OPTIONS = ['bot_type', 'asset', 'capital', 'start_type', 'buy_order_typ
                     'percent_loss_limit', 'profit_loss_function', 'initial_capital']
 
 total_missing_options = []
+menu_assigned_options = {}
 
 
 # If an option is called that needs additional dependencies, add it to the list of missing options
@@ -56,7 +57,7 @@ def validate_dependent_options(ctx, param, value):
     global total_missing_options
     missing_options = []
     # Value is the name of the click context value, so that's why I'm using value for the key name
-    if value in OPTION_DEPENDENCIES.keys():
+    if value in OPTION_DEPENDENCIES.keys() and ctx.params.get("menu") != "menu":
         for option in OPTION_DEPENDENCIES[value]:
             if option not in ctx.params:
                 total_missing_options.append(option)
@@ -66,7 +67,8 @@ def validate_dependent_options(ctx, param, value):
                        f" additionally required options:\n--------------------------")
             for option in missing_options:
                 click.echo(option)
-            click.echo("\n")
+            click.echo("\nWhen adding the above to your one liner, place these BEFORE the option that triggers these "
+                       "dependencies.")
     return value
 
 
@@ -100,7 +102,8 @@ def check_missing_options():
 # Click CLI menu
 def click_menu(ctx, param, value):
     global REQUIRED_OPTIONS
-    global total_missing_options
+    global OPTION_DEPENDENCIES
+    global menu_assigned_options
     make_required(ctx, param, value)
     if value == 'menu':
         click.echo(menu_banner)
@@ -108,19 +111,36 @@ def click_menu(ctx, param, value):
             # For every option in the click command that hasn't been given a value on the command line and is required:
             if option.name not in ctx.params.keys() and option.name in REQUIRED_OPTIONS:
                 user_input = click.prompt(f"{option.help}", type=option.type)
-                # if the user input in a key in the option dependencies, for every dependent check if they are in the
-                # required options then prompt the user for them
-                ctx.params[option.name] = user_input
-    return ctx.params
+                # If the user input has associated dependencies
+                if user_input in OPTION_DEPENDENCIES.keys():
+                    # For every dependency for the user input option
+                    for option_dependency in OPTION_DEPENDENCIES[user_input]:
+                        # Check if the dependency was passed at the command line, if not, prompt the user to add it.
+                        if option_dependency not in ctx.params.keys():
+                            dependency_option = next((opt for opt in ctx.command.params if opt.name == option_dependency), None)
+                            dependency_user_input = click.prompt(f"{dependency_option.help}", type=dependency_option.type)
+                            menu_assigned_options[dependency_option.name] = dependency_user_input
+                        # I don't need to add the current option dependency to the click command option dict, i only need to all its value to the menu input dict. However, I do need to get the option dependency help and type qualities
+                menu_assigned_options[option.name] = user_input
+    return "menu"
+# take the dictionary of the one liner values and
+
+# I need to take all the options passed on the command line and assign them to their values. Then, once they are in
+# place, ask the user for each option they did not pass. I will then take that input and make it the value of the
+# option for the entire click command context. Once the entire click command context is entered, validate the options
+# of the options that need additional options, and then prompt the user for those too. Once all options that are
+# required have been entered, list all the options out in a numberd list and ask for user confirmation. If they say
+# no, then ask which number from the list they would like to modify and give them a prompt to modify it. After that,
+# return to the confirmation menu
 
 
 @click.command()
 @click.argument("menu",
                 type=click.Choice(["menu", "no_menu"]),
-                # callback=click_menu,
+                callback=click_menu,
                 default="menu")
 @click.option("--bot_type",
-              type=click.Choice(["exchange", "atomic", "notifier"]),
+              type=click.Choice(["exchange", "atomic", "notify"]),
               help="Specify the type of bot")
 @click.option("--asset",
               type=click.Choice(["bitcoin", "ethereum", "solana", "xrp", "cardano", "dogecoin", "shiba-inu", "monero"]),
@@ -150,6 +170,7 @@ def click_menu(ctx, param, value):
               help="The profit/loss reallocation protocol determining what to do with profits and losses post sell")
 @click.option("--initial_capital",
               type=float,
+              callback=validate_dependent_options,
               help="Specify the initial amount of capital you wish to place your buy order"
               )
 # Additional options that could become required
@@ -218,11 +239,17 @@ def click_menu(ctx, param, value):
               type=float,
               help="The percentage of profit you want to skim off to keep and not use to be swing traded."
               )
-def one_liner_values(**kwargs):
+def merge_values(**kwargs):
     # take the dictionary of values from menu and compare it to the kwargs and any empty kwargs put the value in it
+    global menu_assigned_options
+    global total_missing_options
+    # if any option values in total missing options or the menu dictionary require additional dependencies,
+    # prompt the user for them.
+    print(menu_assigned_options)
     print(kwargs)
     return kwargs
 
 
 if __name__ == '__main__':
-    one_liner_values()
+    merge_values()
+

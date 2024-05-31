@@ -1,10 +1,13 @@
 # import logic_functions.profit_loss_functions as plf
 import logic_functions.scan_functions as scf
+import menu_test
+menu_test.one_liner_values()
 
-scf.basic_buy_scan("monero", 144.72, 5)
+#scf.basic_buy_scan("monero", 144.72, 5)
 #ladder_sell_scan("bitcoin", 68560, 5, -0.0, 1, -0.5, "00:01:00", 5)
 # scf.ladder_sell_scan("bitcoin", 50000, 10, 5, 1, .5, '00:00:10', 5)
 # 1. Parse user input to relevant variables
+
 
 # 2. Based on initial buy or sell scan, begin the scan protocol to buy or sell
 # 3. Once a scan protocol has been triggered, initiate the corresponding buy, sell, and/or notify function

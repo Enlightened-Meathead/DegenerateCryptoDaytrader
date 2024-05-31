@@ -4,23 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="790062d1-3eac-45d2-9664-133ab5dfac73" name="Changes" comment="Finished RSI buy scan">
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+    <list default="true" id="790062d1-3eac-45d2-9664-133ab5dfac73" name="Changes" comment="Made the email notification system by learning smtplib and got it working as well as learning openpyxl to log orders to a spreadsheet for accounting purposes">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ManPage.md" beforeDir="false" afterPath="$PROJECT_DIR$/resources/ManPage.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data_urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/resources/data_urls.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/logic_protocols/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/logic_functions/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/logic_protocols/buy_protocols.py" beforeDir="false" afterPath="$PROJECT_DIR$/logic_functions/notify_functions.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/logic_protocols/logging_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/logic_functions/logging_functions.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/logic_protocols/profit_loss_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/logic_functions/profit_loss_functions.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/logic_protocols/remote_permission_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/logic_functions/remote_permission_functions.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/logic_protocols/scan_protocols.py" beforeDir="false" afterPath="$PROJECT_DIR$/logic_functions/scan_functions.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/logic_protocols/sell_protocols.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/logic_functions/notify_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/logic_functions/notify_functions.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/menu_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/menu_test.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/readme.md" beforeDir="false" afterPath="$PROJECT_DIR$/readme.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scrape_resources.py" beforeDir="false" afterPath="$PROJECT_DIR$/unused_rn/scrape_resources.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/user_input_menu.py" beforeDir="false" afterPath="$PROJECT_DIR$/unused_rn/user_input_menu.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -233,7 +221,15 @@
       <option name="project" value="LOCAL" />
       <updated>1716055787787</updated>
     </task>
-    <option name="localTasksCounter" value="14" />
+    <task id="LOCAL-00014" summary="Made the email notification system by learning smtplib and got it working as well as learning openpyxl to log orders to a spreadsheet for accounting purposes">
+      <option name="closed" value="true" />
+      <created>1717115066160</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1717115066160</updated>
+    </task>
+    <option name="localTasksCounter" value="15" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -248,7 +244,8 @@
     <MESSAGE value="Made initial user menu and improved some option dependency logic" />
     <MESSAGE value="Started the main module procedure and tested the scan functions and fixed the current price scan function. Victory." />
     <MESSAGE value="Finished RSI buy scan" />
-    <option name="LAST_COMMIT_MESSAGE" value="Finished RSI buy scan" />
+    <MESSAGE value="Made the email notification system by learning smtplib and got it working as well as learning openpyxl to log orders to a spreadsheet for accounting purposes" />
+    <option name="LAST_COMMIT_MESSAGE" value="Made the email notification system by learning smtplib and got it working as well as learning openpyxl to log orders to a spreadsheet for accounting purposes" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

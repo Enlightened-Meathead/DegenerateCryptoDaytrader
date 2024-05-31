@@ -11,17 +11,25 @@ def notify_email(subject, message):
     # Email details
     sender_email = creds.sender_email
     recipient_email = creds.recipient_email
+
     # Create and encrypt the email message
-    # Create the email message
-    msg = MIMEText(message)
+    gpg = gnupg.GPG()
+    public_key = gpg.import_keys(creds.public_key)
+    recipient_fingerprint = public_key.fingerprints[0]
+    encrypted_message = gpg.encrypt(message, recipient_fingerprint)
+
+    # Create the email message`
+    msg = MIMEText(str(encrypted_message))
     msg["Subject"] = subject
     msg["From"] = sender_email
     msg["To"] = recipient_email
+
     # SMTP server settings
     smtp_server = "smtp.gmail.com"
     smtp_port = 587
     smtp_username = creds.smtp_username
     smtp_password = creds.smtp_password
+
     # Establish a connection to the SMTP server
     with smtplib.SMTP(smtp_server, smtp_port) as server:
         # Start TLS encryption
