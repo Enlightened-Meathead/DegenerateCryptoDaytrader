@@ -1,5 +1,5 @@
 # Functions that calculate profit or loss and reallocates assets once a trade is made
-import scan_protocols as scp
+import scan_functions as scf
 
 """
 Upon a sell, a profit or loss generated can have an impact on other protocols. To manage this, multiple reallocation
@@ -8,11 +8,10 @@ or loss reallocation protocol is initiated, or P/LRP.
 """
 
 
-# Little function that return the profit or loss percentage
-def profit_loss_percent(bought_price):
-    profit_percent = float(scp.current_percent_difference(bought_price)) * 0.01
+# Little function that return the profit or loss percentage in decimal form, ie 10% == 0.10
+def profit_loss_percent(asset, bought_price):
+    profit_percent = float(scf.current_percent_difference(asset, bought_price)) * 0.01
     return profit_percent
-
 
 """
  Fixed asset buy profit harvesting P/LRP: when a sell is made, any profit kept, and the fixed amount set to trade with

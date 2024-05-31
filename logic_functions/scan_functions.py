@@ -1,6 +1,4 @@
 # NEED TO TEST: ladder sell scan. Everything else WORKS!!!
-
-
 # Scans that repeatedly look for the desired outcome and returns the value based on the asset given
 import asyncio
 import time
@@ -9,8 +7,10 @@ import json
 import re
 from selenium import webdriver
 
-import data_urls
+from resources import data_urls
 
+# As of this comment, the coinbase public websocket seemingly only supports data on the cryptos they directly sell, so
+# monero is currently not supported :'(
 asset_ticker_pair = {'bitcoin': 'BTC', 'ethereum': 'ETH', 'solana': 'SOL', 'xrp': 'XRP', 'cardano': 'ADA',
                      'dogecoin': 'DOGE', 'shiba-inu': 'SHIB', 'monero': 'XMR'
                      }
@@ -118,6 +118,11 @@ def rsi_buy_scan(asset, rsi_buy_number, rsi_drop_limit, rsi_wait_period):
         driver.quit()
 
 
+"""
+the above all works, but i want to make it headless, add proxy randomization to change the IP address each request, and 
+if the connection is given a captcha, somehow recognize that and try a different proxy or refresh the page.
+"""
+
 # Revival buy function: if an asset is sold due to a stop loss limit initiating the sell, buy back the asset at the
 # price it was sold at by the stop loss. Actually, the above can do that just fine, just need to link the buy price
 # to the stop loss limit last sell price
@@ -163,6 +168,7 @@ def basic_sell_scan(asset, bought_price, percent_wanted, percent_loss_limit):
 '''
 
 
+# Make sure to set the percent loss limit as negative step gain as negative with a -
 def ladder_sell_scan(asset, bought_price, percent_wanted, percent_loss_limit, positive_step_gain, negative_step_gain,
                      timer_duration, sleep_duration, step_sensitivity_value=1, timer_sensitivity_value=1):
     sell_signal = False
@@ -171,6 +177,7 @@ def ladder_sell_scan(asset, bought_price, percent_wanted, percent_loss_limit, po
     while not sell_signal:
         # Calculates the potential profit or loss percentage
         percent_changed = current_percent_difference(asset, bought_price)
+        print(percent_changed)
 
         # If the percentage profit goes over the percent wanted, begin the ladder
         if percent_changed > percent_wanted and not timer_started:
@@ -201,6 +208,7 @@ def ladder_sell_scan(asset, bought_price, percent_wanted, percent_loss_limit, po
                         end_time = time.time() + time_to_seconds(timer_duration / timer_sensitivity_value)
                 # If the negative step value is hit, initiate a sell order
                 elif new_percent_difference < negative_step_gain:
+                    print(new_percent_difference)
                     sell_signal = True
                     print("sold due to negative step gain")
                     return sell_signal

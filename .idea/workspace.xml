@@ -4,10 +4,23 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="790062d1-3eac-45d2-9664-133ab5dfac73" name="Changes" comment="Started the main module procedure and tested the scan functions and fixed the current price scan function. Victory.">
+    <list default="true" id="790062d1-3eac-45d2-9664-133ab5dfac73" name="Changes" comment="Finished RSI buy scan">
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/logic_protocols/scan_protocols.py" beforeDir="false" afterPath="$PROJECT_DIR$/logic_protocols/scan_protocols.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ManPage.md" beforeDir="false" afterPath="$PROJECT_DIR$/resources/ManPage.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/data_urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/resources/data_urls.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/logic_protocols/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/logic_functions/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/logic_protocols/buy_protocols.py" beforeDir="false" afterPath="$PROJECT_DIR$/logic_functions/notify_functions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/logic_protocols/logging_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/logic_functions/logging_functions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/logic_protocols/profit_loss_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/logic_functions/profit_loss_functions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/logic_protocols/remote_permission_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/logic_functions/remote_permission_functions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/logic_protocols/scan_protocols.py" beforeDir="false" afterPath="$PROJECT_DIR$/logic_functions/scan_functions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/logic_protocols/sell_protocols.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/menu_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/menu_test.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/readme.md" beforeDir="false" afterPath="$PROJECT_DIR$/readme.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scrape_resources.py" beforeDir="false" afterPath="$PROJECT_DIR$/unused_rn/scrape_resources.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/user_input_menu.py" beforeDir="false" afterPath="$PROJECT_DIR$/unused_rn/user_input_menu.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -46,7 +59,9 @@
   &quot;associatedIndex&quot;: 1
 }</component>
   <component name="ProjectId" id="2fCSAxZTeeIu1zd5JLWPQO5lJV3" />
-  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true">
+    <ConfirmationsSetting value="1" id="Add" />
+  </component>
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
@@ -54,9 +69,12 @@
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
     "Python.buy_protocols.executor": "Run",
+    "Python.logging_functions.executor": "Run",
     "Python.main.executor": "Run",
     "Python.menu_test.executor": "Run",
+    "Python.notify_functions.executor": "Run",
     "Python.profit_loss_functions.executor": "Run",
+    "Python.scan_functions.executor": "Run",
     "Python.scan_protocols.executor": "Run",
     "Python.scrape_resources.executor": "Run",
     "Python.user_input_menu.executor": "Run",
@@ -66,6 +84,13 @@
     "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable"
   }
 }]]></component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/resources" />
+      <recent name="$PROJECT_DIR$/logic_functions" />
+      <recent name="$PROJECT_DIR$/unused_rn" />
+    </key>
+  </component>
   <component name="RunManager">
     <configuration name="menu_test" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="degenerate_crypto_daytrader" />
@@ -200,7 +225,15 @@
       <option name="project" value="LOCAL" />
       <updated>1715744728284</updated>
     </task>
-    <option name="localTasksCounter" value="13" />
+    <task id="LOCAL-00013" summary="Finished RSI buy scan">
+      <option name="closed" value="true" />
+      <created>1716055787787</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1716055787787</updated>
+    </task>
+    <option name="localTasksCounter" value="14" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -214,13 +247,14 @@
     <MESSAGE value="Updated the missing required options error handling and created callback function for the menu argument" />
     <MESSAGE value="Made initial user menu and improved some option dependency logic" />
     <MESSAGE value="Started the main module procedure and tested the scan functions and fixed the current price scan function. Victory." />
-    <option name="LAST_COMMIT_MESSAGE" value="Started the main module procedure and tested the scan functions and fixed the current price scan function. Victory." />
+    <MESSAGE value="Finished RSI buy scan" />
+    <option name="LAST_COMMIT_MESSAGE" value="Finished RSI buy scan" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/scrape_resources.py</url>
+          <url>file://$PROJECT_DIR$/unused_rn/scrape_resources.py</url>
           <line>22</line>
           <option name="timeStamp" value="5" />
         </line-breakpoint>

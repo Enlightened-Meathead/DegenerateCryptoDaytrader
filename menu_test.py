@@ -39,7 +39,7 @@ BEFORE USING THIS PROGRAM, READ THE DOCUMENTATION AND/OR MAN PAGE!
 # Options that become required only if other options are called
 OPTION_DEPENDENCIES = {
     'basic_buy': ['basic_buy_price'],
-    'rsi_buy': ['rsi_buy_number', 'rsi_wait_period'],
+    'rsi_buy': ['rsi_buy_number', 'rsi_drop_limit', 'rsi_wait_period'],
     'basic_sell': ['basic_sell_profit'],
     'ladder': ['minimum_ladder_profit', 'ladder_step_gain', 'ladder_step_loss', 'ladder_timer_duration',
                'ladder_step_sensitivity', 'ladder_timer_sensitivity'],
@@ -168,7 +168,6 @@ def click_menu(ctx, param, value):
               required=False,
               type=float,
               help="The RSI you would not want to drop below after the wait period has expired in the RSI scan")
-
 @click.option("--rsi_wait_period",
               required=False,
               # Use a time check function
@@ -227,4 +226,3 @@ def one_liner_values(**kwargs):
 
 if __name__ == '__main__':
     one_liner_values()
-

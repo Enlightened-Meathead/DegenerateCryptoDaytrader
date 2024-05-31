@@ -1,7 +1,7 @@
 import time
 from selenium import webdriver
 
-import data_urls
+from resources import data_urls
 
 # Set the Firefox browser to headless, try later
 firefox_options = webdriver.FirefoxOptions()

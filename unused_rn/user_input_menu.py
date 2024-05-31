@@ -54,6 +54,7 @@ def validate_minimum_capital(ctx, param, value):
         raise click.BadParameter("Minimum capital must be 'no' or a numeric value.")
 
 '''
+'''
 @click.command()
 @click.argument("menu",
                 type=click.Choice(["menu", "nomenu"]), default="menu",
@@ -88,6 +89,7 @@ def validate_minimum_capital(ctx, param, value):
               type=(float, int),
               help="Specify the initial amount of capital you wish to place your buy order"
               )
+'''
 
 '''
 @click.option("--minimum_capital",
