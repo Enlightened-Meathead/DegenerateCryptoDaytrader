@@ -30,11 +30,11 @@ $$$$$$  $    $   $     $   $    $ $    $ $$$$$  $$$$$$ $    $
 BEFORE USING THIS PROGRAM, READ THE DOCUMENTATION AND/OR MAN PAGE!
 ==================================================================
 """
-'''
-    Once all options have been passed to click, review with the user for confirmation
-        if yes, move on. If no, ask the user which one they would like to change. Select that option, then reprompt the user for that option
-    Once all options have been gathered by click in either the cli one liner, a cli one liner with missing options corrected by the menu, or just the menu, pass them to the main logic modulea cli one liner with missing options corrected by the menu, or just the menu, pass them to the main logic module.
-'''
+'''Once all options have been passed to click, review with the user for confirmation if yes, move on. If no, 
+ask the user which one they would like to change. Select that option, then reprompt the user for that option Once all 
+options have been gathered by click in either the cli one liner, a cli one liner with missing options corrected by 
+the menu, or just the menu, pass them to the main logic module cli one liner with missing options corrected by the 
+menu, or just the menu, pass them to the main logic module.'''
 # Right now, for one-liners make sure any additional option dependencies are declared before their parent option
 # Options that become required only if other options are called
 OPTION_DEPENDENCIES = {
@@ -50,6 +50,8 @@ REQUIRED_OPTIONS = ['bot_type', 'asset', 'capital', 'start_type', 'buy_order_typ
 
 total_missing_options = []
 menu_assigned_options = {}
+final_user_options = {"asset": 'bitcoin', 'buy_price': 10, 'sell_price': 100}
+click_objects_dict = {}
 
 
 # If an option is called that needs additional dependencies, add it to the list of missing options
@@ -90,19 +92,20 @@ def check_missing_options():
         return True
 
 
-'''
-- for the menu, for every option, create a prompt with the message being the help message, the click choices the
-    prompt choice, then make the answer to that prompt equal to the parameter value for that parameters name then pass that option to click.
-    If the program is called with menu and some options, start the menu but only for their missing options
-        - say the user is missing some options, and tell them if they dont want this menu pass the argument no menu
-        - check if the passed options require optional dependencies. for every global total missing option, prompt the user to enter them
-'''
+'''- for the menu, for every option, create a prompt with the message being the help message, the click choices the 
+prompt choice, then make the answer to that prompt equal to the parameter value for that parameters name then pass 
+that option to click. If the program is called with menu and some options, start the menu but only for their missing 
+options - say the user is missing some options, and tell them if they dont want this menu pass the argument no menu - 
+check if the passed options require optional dependencies. for every global total missing option, prompt the user to 
+enter them'''
 
 
+# Figure out a way to shrink this function down...
 # Click CLI menu
 def click_menu(ctx, param, value):
     global REQUIRED_OPTIONS
     global OPTION_DEPENDENCIES
+    global total_missing_options
     global menu_assigned_options
     make_required(ctx, param, value)
     if value == 'menu':
@@ -117,28 +120,130 @@ def click_menu(ctx, param, value):
                     for option_dependency in OPTION_DEPENDENCIES[user_input]:
                         # Check if the dependency was passed at the command line, if not, prompt the user to add it.
                         if option_dependency not in ctx.params.keys():
-                            dependency_option = next((opt for opt in ctx.command.params if opt.name == option_dependency), None)
-                            dependency_user_input = click.prompt(f"{dependency_option.help}", type=dependency_option.type)
+                            dependency_option = next(
+                                (opt for opt in ctx.command.params if opt.name == option_dependency), None)
+                            dependency_user_input = click.prompt(f"{dependency_option.help}",
+                                                                 type=dependency_option.type)
                             menu_assigned_options[dependency_option.name] = dependency_user_input
-                        # I don't need to add the current option dependency to the click command option dict, i only need to all its value to the menu input dict. However, I do need to get the option dependency help and type qualities
                 menu_assigned_options[option.name] = user_input
-    return "menu"
-# take the dictionary of the one liner values and
+        # If any missing options exist from the command line, prompt the user for those as well
+        click.echo("The following are required additional options based on some of your options you passed on the "
+                   "command line:")
+        # For the missing options that weren't passed at the command line with the option that requires them
+        for option in total_missing_options:
+            # Get the option object that was missing from the command line and prompt the user
+            dependency_option = next(
+                (opt for opt in ctx.command.params if opt.name == option), None)
+            dependency_user_input = click.prompt(f"{dependency_option.help}",
+                                                 type=dependency_option.type)
+            menu_assigned_options[dependency_option.name] = dependency_user_input
+    return value
+
+
+# Check if the user input is an integer or the string 'cancel' to escape the modify loop
+def integer_or_cancel(user_input):
+    try:
+        return int(user_input)
+    except ValueError:
+        if user_input == "cancel":
+            return user_input
+
+
+# Could definitely be optimized, but for now its functional
+def finalize_user_inputs():
+    global final_user_options
+    global click_objects_dict
+    modify_choice_dict = {}
+    confirm_choices = 'no'
+
+    while confirm_choices == 'no':
+        option_index = []
+        print("\n===========================\nYour current option values:\n===========================")
+        for key, value in final_user_options.items():
+            if value is not None:
+                option_index.append(key)
+                print(f"{option_index.index(key) + 1}: {key} = {value}")
+                modify_choice_dict[option_index.index(key) + 1] = key
+        modify_choice = click.prompt("Would you like to modify any option's values?",
+                                     type=click.Choice(['yes', 'no']))
+        display_options = False
+        while modify_choice == 'yes':
+            display_options = True
+            # Get the length of the index of choices and make it into a list of the range of integers
+            choice_length = range(0, len(option_index))
+            choices_range = [(choice + 1) for choice in choice_length]
+            invalid_choice = True
+            user_int = 0
+            # Get the number of the option within the index the user wants to modify
+            while invalid_choice:
+                user_int = click.prompt(
+                    'Please enter which option-value pair you would like to change (Enter a number from '
+                    'the index or cancel to cancel)', type=integer_or_cancel
+                )
+                if user_int == 'cancel':
+                    invalid_choice = False
+                    modify_choice = 'no'
+                elif user_int not in choices_range:
+                    print(f"Please enter a valid integer within the range 1 to {len(option_index)}")
+                else:
+                    invalid_choice = False
+            if modify_choice == 'yes':
+                # Prompt the user for the choice at that index then update that choice in the final_user_options
+                # Get the name of the option corresponding with the index number
+                user_option_change = modify_choice_dict[user_int]
+                # Get the choices object from the dictionary of options and their corresponding choices
+                change_choices = click_objects_dict[user_option_change]
+                # Convert the choice object into a list to use as the choices for the prompt
+                try:
+                    choice_list = [choice for choice in change_choices.choices]
+                except AttributeError:
+                    choice_list = float
+                try:
+                    changed_option_value = click.prompt(f'Enter new value for {user_option_change}',
+                                                        type=click.Choice(choice_list))
+                except AttributeError:
+                    changed_option_value = click.prompt(f'Enter new value for {user_option_change}',
+                                                        type=choice_list)
+                final_user_options[user_option_change] = changed_option_value
+                # Check to see if the updated option adds any dependent options, and if that's the case, prompt the user
+                if changed_option_value in OPTION_DEPENDENCIES.keys():
+                    dependency_options = OPTION_DEPENDENCIES[changed_option_value]
+                    for option in dependency_options:
+                        dependency_choice = click_objects_dict[option]
+                        changed_option_value = click.prompt(f'Enter new value for {option}', type=dependency_choice)
+                        final_user_options[option] = changed_option_value
+
+        # Ask the user again if they want to anything, if no, make them type CONFIRM to start the bot with a prompt
+        # that gives them a legal warning
+        if display_options:
+            print("\n===========================\nYour current option values:\n===========================")
+            for key, value in final_user_options.items():
+                if value is not None:
+                    option_index.append(key)
+                    print(f"{option_index.index(key) + 1}: {key} = {value}")
+                    modify_choice_dict[option_index.index(key) + 1] = key
+        confirm_choices = click.prompt("Are these are your final settings? If so, please type CONFIRM and the bot "
+                                       "will start. If not, type no to go back and modify",
+                                       type=click.Choice(['CONFIRM', 'no']))
+        # print a one-liner that the user can copy and paste the next time they want to run this trade as a one-liner
+
+
+# take the dictionary of the one-liner values and
 
 # I need to take all the options passed on the command line and assign them to their values. Then, once they are in
 # place, ask the user for each option they did not pass. I will then take that input and make it the value of the
 # option for the entire click command context. Once the entire click command context is entered, validate the options
 # of the options that need additional options, and then prompt the user for those too. Once all options that are
-# required have been entered, list all the options out in a numberd list and ask for user confirmation. If they say
+# required have been entered, list all the options out in a number list and ask for user confirmation. If they say
 # no, then ask which number from the list they would like to modify and give them a prompt to modify it. After that,
 # return to the confirmation menu
 
 
 @click.command()
-@click.argument("menu",
-                type=click.Choice(["menu", "no_menu"]),
-                callback=click_menu,
-                default="menu")
+@click.option("--menu",
+              type=click.Choice(["menu", "no_menu"]),
+              callback=click_menu,
+              default="menu")
 @click.option("--bot_type",
               type=click.Choice(["exchange", "atomic", "notify"]),
               help="Specify the type of bot")
@@ -239,17 +344,24 @@ def click_menu(ctx, param, value):
               type=float,
               help="The percentage of profit you want to skim off to keep and not use to be swing traded."
               )
-def merge_values(**kwargs):
+def merge_user_inputs(**kwargs):
     # take the dictionary of values from menu and compare it to the kwargs and any empty kwargs put the value in it
     global menu_assigned_options
-    global total_missing_options
-    # if any option values in total missing options or the menu dictionary require additional dependencies,
-    # prompt the user for them.
-    print(menu_assigned_options)
-    print(kwargs)
-    return kwargs
+    global final_user_options
+    global click_objects_dict
+    # Take every click option and make into a nested dictionary to be referenced for outside the scope of the click
+    # command
+    ctx = click.get_current_context()
+    for param in ctx.command.params:
+        click_objects_dict[param.name] = param.type
+
+    if ctx.params['menu'] == 'menu':
+        # Merge the click command line options with the menu options overwriting the click options
+        final_user_options = kwargs | menu_assigned_options
+        finalize_user_inputs()
+
+    return final_user_options
 
 
 if __name__ == '__main__':
-    merge_values()
-
+    merge_user_inputs()

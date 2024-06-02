@@ -4,10 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="790062d1-3eac-45d2-9664-133ab5dfac73" name="Changes" comment="Made the email notification system by learning smtplib and got it working as well as learning openpyxl to log orders to a spreadsheet for accounting purposes">
+    <list default="true" id="790062d1-3eac-45d2-9664-133ab5dfac73" name="Changes" comment="Added PGP encryption to email notifier and added CLI menu functionality">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/logic_functions/notify_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/logic_functions/notify_functions.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/menu_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/menu_test.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -229,7 +227,15 @@
       <option name="project" value="LOCAL" />
       <updated>1717115066160</updated>
     </task>
-    <option name="localTasksCounter" value="15" />
+    <task id="LOCAL-00015" summary="Added PGP encryption to email notifier and added CLI menu functionality">
+      <option name="closed" value="true" />
+      <created>1717193920386</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1717193920386</updated>
+    </task>
+    <option name="localTasksCounter" value="16" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -245,7 +251,8 @@
     <MESSAGE value="Started the main module procedure and tested the scan functions and fixed the current price scan function. Victory." />
     <MESSAGE value="Finished RSI buy scan" />
     <MESSAGE value="Made the email notification system by learning smtplib and got it working as well as learning openpyxl to log orders to a spreadsheet for accounting purposes" />
-    <option name="LAST_COMMIT_MESSAGE" value="Made the email notification system by learning smtplib and got it working as well as learning openpyxl to log orders to a spreadsheet for accounting purposes" />
+    <MESSAGE value="Added PGP encryption to email notifier and added CLI menu functionality" />
+    <option name="LAST_COMMIT_MESSAGE" value="Added PGP encryption to email notifier and added CLI menu functionality" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
