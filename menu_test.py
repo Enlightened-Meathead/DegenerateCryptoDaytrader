@@ -2,7 +2,6 @@ from datetime import datetime
 import re
 import click
 
-# python3 menu_test.py --bot_type exchange --asset bitcoin --capital dollars --start_type buy --buy_order_type rsi_buy --sell_order_type ladder --percent_loss_limit 10 --profit_loss_function profit_harvest --initial_capital 100
 menu_banner = """
 $$$$$$                                                                
 $     $ $$$$$$  $$$$  $$$$$$ $    $ $$$$$$ $$$$$    $$   $$$$$ $$$$$$ 
@@ -32,11 +31,6 @@ $$$$$$  $    $   $     $   $    $ $    $ $$$$$  $$$$$$ $    $
 BEFORE USING THIS PROGRAM, READ THE DOCUMENTATION AND/OR MAN PAGE!
 ==================================================================
 """
-'''Once all options have been passed to click, review with the user for confirmation if yes, move on. If no, 
-ask the user which one they would like to change. Select that option, then reprompt the user for that option Once all 
-options have been gathered by click in either the cli one liner, a cli one liner with missing options corrected by 
-the menu, or just the menu, pass them to the main logic module cli one liner with missing options corrected by the 
-menu, or just the menu, pass them to the main logic module.'''
 # Right now, for one-liners make sure any additional option dependencies are declared before their parent option
 # Options that become required only if other options are called
 OPTION_DEPENDENCIES = {
@@ -64,9 +58,11 @@ def validate_dependent_options(ctx, param, value):
     # Value is the name of the click context value, so that's why I'm using value for the key name
     if value in OPTION_DEPENDENCIES.keys() and ctx.params.get("menu") != "menu":
         for option in OPTION_DEPENDENCIES[value]:
+            # If an option required by the parent option is not present, make it required
             if option not in ctx.params:
                 total_missing_options.append(option)
                 missing_options.append(option)
+        # Print out all missing options the user didn't pass on the command line
         if len(missing_options) > 0:
             click.echo(f"\nWith the {value} choice for the {param.name} option, please supply the below stated"
                        f" additionally required options:\n--------------------------")
@@ -153,16 +149,22 @@ def integer_or_cancel(user_input):
 
 
 # Could definitely be optimized, but for now its functional
+"""This big kahuna is a user review menu that takes the user inputs from the command line and menu then lets them 
+review them, update them, then once the user confirms their final settings, take all the user inputs and converts 
+them to a one-liner they can copy paste if they want to run the same trade and stores it into a command history log 
+file for this program"""
 def finalize_user_inputs():
     global final_user_options
     global click_objects_dict
     global selected_user_options
     modify_choice_dict = {}
     confirm_choices = 'no'
-
+    # While the user has not confirmed their settings, present them the option to change things
     while confirm_choices == 'no':
         option_index = []
         print("\n===========================\nYour current option values:\n===========================")
+        # Create a numbered index of values the user needs so they can reference a number rather than type the entire
+        # name they want to change
         for key, value in final_user_options.items():
             if value is not None:
                 option_index.append(key)
@@ -171,11 +173,13 @@ def finalize_user_inputs():
                 modify_choice_dict[option_index.index(key) + 1] = key
         modify_choice = click.prompt("Would you like to modify any option's values?",
                                      type=click.Choice(['yes', 'no']))
+        # Added this flag so if the user says 'no' to changing values the user settings don't double print themselves
         display_options = False
         while modify_choice == 'yes':
             display_options = True
             # Get the length of the index of choices and make it into a list of the range of integers
             choice_length = range(0, len(option_index))
+            # Create a list of the valid range the user can enter as an option to modify
             choices_range = [(choice + 1) for choice in choice_length]
             invalid_choice = True
             user_int = 0
@@ -202,13 +206,18 @@ def finalize_user_inputs():
                 try:
                     choice_list = [choice for choice in change_choices.choices]
                 except AttributeError:
-                    choice_list = float
-                try:
+                    # If the choice for the choice object is non-iterable such as a float or percentage and uses a
+                    # callback or type, make the choice list just use that type check function
+                    choice_list = change_choices
+
+                # If the choice list is a list, make that the type
+                if isinstance(choice_list, list):
                     changed_option_value = click.prompt(f'Enter new value for {user_option_change}',
                                                         type=click.Choice(choice_list))
-                except AttributeError:
+                else:
                     changed_option_value = click.prompt(f'Enter new value for {user_option_change}',
                                                         type=choice_list)
+                # Update the final list of options with the changed value
                 final_user_options[user_option_change] = changed_option_value
                 # Check to see if the updated option adds any dependent options, and if that's the case, prompt the user
                 if changed_option_value in OPTION_DEPENDENCIES.keys():
@@ -232,32 +241,32 @@ def finalize_user_inputs():
                                        "will start. If not, type no to go back and modify",
                                        type=click.Choice(['CONFIRM', 'no']))
 
-
+# Type check function for the click options to make sure they meet the required format
 def check_time_format(input_value):
     time_format = r'^(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d$'
+    invalid_message = ("Invalid time. Please give a time with the format of HH:MM:SS. Example of 1 hour 30 minutes: "
+                       "01:30:00")
     if re.match(time_format, input_value):
-        return True
+        return input_value
     else:
-        return False
+        raise click.BadParameter(invalid_message)
 
-    pass
-
-
+# Type check for the click options that makes sure the RSI and percentages are in range of 0-100
 def check_percentage(input_value):
-    try:
-        possible_percentage = float(input_value)
-    except TypeError:
-        return False
-    if 100 >= possible_percentage > 0:
-        return possible_percentage
+    invalid_message = "Invalid percentage. Please give a value between 0 and 100"
+    if 100 >= float(input_value) > 0:
+        return input_value
     else:
-        return False
+        raise click.BadParameter(invalid_message)
 
 
 # When you get to a point that you can natively interact with wallets and read funds, check to make sure the user
 # has enough funds before trying to start a trade
 def check_enough_capital(input_value):
-    pass
+    if float(input_value) > 0:
+        return input_value
+    else:
+        raise click.BadParameter("Please enter a positive number of the value you wish to buy the trade with")
 
 
 # print a one-liner that the user can copy and paste the next time they want to run this trade as a one-liner
@@ -327,7 +336,7 @@ def repeat_one_liner():
               help="The type of sell order scan type you'd like to  monitor the asset with to alert a sell signal")
 # Possibly refactor the name to stop_loss_limit later
 @click.option("--percent_loss_limit",
-              type=float,
+              type=check_percentage,
               help="The percent you will allow your initial buy capital to drop by before selling at a loss"
               )
 @click.option("--profit_loss_function",
@@ -335,7 +344,7 @@ def repeat_one_liner():
               callback=validate_dependent_options,
               help="The profit/loss reallocation protocol determining what to do with profits and losses post sell")
 @click.option("--initial_capital",
-              type=float,
+              type=check_enough_capital,
               callback=validate_dependent_options,
               help="Specify the initial amount of capital you wish to place your buy order"
               )
@@ -343,52 +352,51 @@ def repeat_one_liner():
 # If basic buy
 @click.option("--basic_buy_price",
               required=False,
-              type=float,
+              type=check_enough_capital,
               help="The price of the asset you want to buy at as an integer or float"
               )
 # If RSI buy
 @click.option("--rsi_buy_number",
               required=False,
-              type=float,
+              type=check_percentage,
               help="The RSI you'd like to sell at if it stays at that RSI for the wait period")
 @click.option("--rsi_drop_limit",
               required=False,
-              type=float,
+              type=check_percentage,
               help="The RSI you would not want to drop below after the wait period has expired in the RSI scan")
 @click.option("--rsi_wait_period",
               required=False,
-              # Use a time check function
-              # type=click.Choice(),
+              type=check_time_format,
               help="The amount of time to wait before the sell order is placed if an RSI is hit. Format of 00:00:00 "
                    "for hours, minutes, and seconds, minutes and seconds being between 0-59")
 # If basic sell
 @click.option("--basic_sell_profit",
               required=False,
-              type=float,
+              type=check_percentage,
               help="The percentage of profit you would like to achieve before the sell signal is true"
               )
 # If ladder sell function
 @click.option("--minimum_ladder_profit",
               required=False,
-              type=float,
+              type=check_percentage,
               help="The minimum profit percent you want before the sell time begins for the ladder profit sell function"
               )
 @click.option("--ladder_step_gain",
               required=False,
-              type=float,
+              type=check_percentage,
               help="The percentage of each step to reset the timer at once the minimum profit has been reached"
               )
 @click.option("--ladder_step_loss",
               required=False,
-              type=float,
+              type=check_percentage,
               help="The percentage drop step that will trigger an immediate sell in the ladder function"
               )
 @click.option("--ladder_timer_duration",
               required=False,
+              type=check_time_format,
               help="The duration of time to let the price stagnate before you sell. Format of 00:00:00 for hours, "
                    "minutes, and seconds, minutes and seconds being between 0-59"
               )
-# use check time function
 @click.option("--ladder_step_sensitivity",
               required=False,
               type=float,
@@ -397,13 +405,14 @@ def repeat_one_liner():
               )
 @click.option("--ladder_timer_sensitivity",
               required=False,
+              type=float,
               help="The number to divide the ladder timer duration by to increase or decrease the time period to sell "
                    "after"
               )
 # If profit loss swing trade
 @click.option("--swing_trade_skim",
               required=False,
-              type=float,
+              type=check_percentage,
               help="The percentage of profit you want to skim off to keep and not use to be swing traded."
               )
 # History command that reads file output from the command history
@@ -422,8 +431,8 @@ def merge_user_inputs(**kwargs):
         # Merge the click command line options with the menu options overwriting the click options
         final_user_options = kwargs | menu_assigned_options
         finalize_user_inputs()
-    repeat_one_liner()
-
+        repeat_one_liner()
+    print(final_user_options)
     return final_user_options
 
 

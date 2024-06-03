@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="790062d1-3eac-45d2-9664-133ab5dfac73" name="Changes" comment="Added CLI menu robustness and mixed user command line input with CLI interface menu feedback as well as added a review page to confirm your settings.">
+    <list default="true" id="790062d1-3eac-45d2-9664-133ab5dfac73" name="Changes" comment="Added more input filters and command history logging">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/menu_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/menu_test.py" afterDir="false" />
     </list>
@@ -52,24 +52,24 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Python.buy_protocols.executor": "Run",
-    "Python.logging_functions.executor": "Run",
-    "Python.main.executor": "Run",
-    "Python.menu_test.executor": "Run",
-    "Python.notify_functions.executor": "Run",
-    "Python.profit_loss_functions.executor": "Run",
-    "Python.scan_functions.executor": "Run",
-    "Python.scan_protocols.executor": "Run",
-    "Python.scrape_resources.executor": "Run",
-    "Python.user_input_menu.executor": "Run",
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "main",
-    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Python.buy_protocols.executor&quot;: &quot;Run&quot;,
+    &quot;Python.logging_functions.executor&quot;: &quot;Run&quot;,
+    &quot;Python.main.executor&quot;: &quot;Run&quot;,
+    &quot;Python.menu_test.executor&quot;: &quot;Run&quot;,
+    &quot;Python.notify_functions.executor&quot;: &quot;Run&quot;,
+    &quot;Python.profit_loss_functions.executor&quot;: &quot;Run&quot;,
+    &quot;Python.scan_functions.executor&quot;: &quot;Run&quot;,
+    &quot;Python.scan_protocols.executor&quot;: &quot;Run&quot;,
+    &quot;Python.scrape_resources.executor&quot;: &quot;Run&quot;,
+    &quot;Python.user_input_menu.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/resources" />
@@ -243,7 +243,15 @@
       <option name="project" value="LOCAL" />
       <updated>1717372032506</updated>
     </task>
-    <option name="localTasksCounter" value="17" />
+    <task id="LOCAL-00017" summary="Added more input filters and command history logging">
+      <option name="closed" value="true" />
+      <created>1717390284076</created>
+      <option name="number" value="00017" />
+      <option name="presentableId" value="LOCAL-00017" />
+      <option name="project" value="LOCAL" />
+      <updated>1717390284076</updated>
+    </task>
+    <option name="localTasksCounter" value="18" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -261,7 +269,8 @@
     <MESSAGE value="Made the email notification system by learning smtplib and got it working as well as learning openpyxl to log orders to a spreadsheet for accounting purposes" />
     <MESSAGE value="Added PGP encryption to email notifier and added CLI menu functionality" />
     <MESSAGE value="Added CLI menu robustness and mixed user command line input with CLI interface menu feedback as well as added a review page to confirm your settings." />
-    <option name="LAST_COMMIT_MESSAGE" value="Added CLI menu robustness and mixed user command line input with CLI interface menu feedback as well as added a review page to confirm your settings." />
+    <MESSAGE value="Added more input filters and command history logging" />
+    <option name="LAST_COMMIT_MESSAGE" value="Added more input filters and command history logging" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
