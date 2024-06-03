@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="790062d1-3eac-45d2-9664-133ab5dfac73" name="Changes" comment="Added PGP encryption to email notifier and added CLI menu functionality">
+    <list default="true" id="790062d1-3eac-45d2-9664-133ab5dfac73" name="Changes" comment="Added CLI menu robustness and mixed user command line input with CLI interface menu feedback as well as added a review page to confirm your settings.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/menu_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/menu_test.py" afterDir="false" />
     </list>
@@ -235,7 +235,15 @@
       <option name="project" value="LOCAL" />
       <updated>1717193920386</updated>
     </task>
-    <option name="localTasksCounter" value="16" />
+    <task id="LOCAL-00016" summary="Added CLI menu robustness and mixed user command line input with CLI interface menu feedback as well as added a review page to confirm your settings.">
+      <option name="closed" value="true" />
+      <created>1717372032506</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1717372032506</updated>
+    </task>
+    <option name="localTasksCounter" value="17" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -252,7 +260,8 @@
     <MESSAGE value="Finished RSI buy scan" />
     <MESSAGE value="Made the email notification system by learning smtplib and got it working as well as learning openpyxl to log orders to a spreadsheet for accounting purposes" />
     <MESSAGE value="Added PGP encryption to email notifier and added CLI menu functionality" />
-    <option name="LAST_COMMIT_MESSAGE" value="Added PGP encryption to email notifier and added CLI menu functionality" />
+    <MESSAGE value="Added CLI menu robustness and mixed user command line input with CLI interface menu feedback as well as added a review page to confirm your settings." />
+    <option name="LAST_COMMIT_MESSAGE" value="Added CLI menu robustness and mixed user command line input with CLI interface menu feedback as well as added a review page to confirm your settings." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

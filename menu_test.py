@@ -1,3 +1,5 @@
+from datetime import datetime
+import re
 import click
 
 # python3 menu_test.py --bot_type exchange --asset bitcoin --capital dollars --start_type buy --buy_order_type rsi_buy --sell_order_type ladder --percent_loss_limit 10 --profit_loss_function profit_harvest --initial_capital 100
@@ -50,7 +52,8 @@ REQUIRED_OPTIONS = ['bot_type', 'asset', 'capital', 'start_type', 'buy_order_typ
 
 total_missing_options = []
 menu_assigned_options = {}
-final_user_options = {"asset": 'bitcoin', 'buy_price': 10, 'sell_price': 100}
+final_user_options = {}
+selected_user_options = {}
 click_objects_dict = {}
 
 
@@ -153,6 +156,7 @@ def integer_or_cancel(user_input):
 def finalize_user_inputs():
     global final_user_options
     global click_objects_dict
+    global selected_user_options
     modify_choice_dict = {}
     confirm_choices = 'no'
 
@@ -162,6 +166,7 @@ def finalize_user_inputs():
         for key, value in final_user_options.items():
             if value is not None:
                 option_index.append(key)
+                selected_user_options[key] = value
                 print(f"{option_index.index(key) + 1}: {key} = {value}")
                 modify_choice_dict[option_index.index(key) + 1] = key
         modify_choice = click.prompt("Would you like to modify any option's values?",
@@ -220,23 +225,79 @@ def finalize_user_inputs():
             for key, value in final_user_options.items():
                 if value is not None:
                     option_index.append(key)
+                    selected_user_options[key] = value
                     print(f"{option_index.index(key) + 1}: {key} = {value}")
                     modify_choice_dict[option_index.index(key) + 1] = key
         confirm_choices = click.prompt("Are these are your final settings? If so, please type CONFIRM and the bot "
                                        "will start. If not, type no to go back and modify",
                                        type=click.Choice(['CONFIRM', 'no']))
-        # print a one-liner that the user can copy and paste the next time they want to run this trade as a one-liner
 
 
-# take the dictionary of the one-liner values and
+def check_time_format(input_value):
+    time_format = r'^(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d$'
+    if re.match(time_format, input_value):
+        return True
+    else:
+        return False
 
-# I need to take all the options passed on the command line and assign them to their values. Then, once they are in
-# place, ask the user for each option they did not pass. I will then take that input and make it the value of the
-# option for the entire click command context. Once the entire click command context is entered, validate the options
-# of the options that need additional options, and then prompt the user for those too. Once all options that are
-# required have been entered, list all the options out in a number list and ask for user confirmation. If they say
-# no, then ask which number from the list they would like to modify and give them a prompt to modify it. After that,
-# return to the confirmation menu
+    pass
+
+
+def check_percentage(input_value):
+    try:
+        possible_percentage = float(input_value)
+    except TypeError:
+        return False
+    if 100 >= possible_percentage > 0:
+        return possible_percentage
+    else:
+        return False
+
+
+# When you get to a point that you can natively interact with wallets and read funds, check to make sure the user
+# has enough funds before trying to start a trade
+def check_enough_capital(input_value):
+    pass
+
+
+# print a one-liner that the user can copy and paste the next time they want to run this trade as a one-liner
+def repeat_one_liner():
+    global selected_user_options
+    # Make this a config setting that lets the user save what they have their alias to the log file
+    program_alias = "test_program_name"
+    command_option_list = []
+    print("\n===========================\nCurrent Options One-Liner:\n===========================")
+    # Add the --option value strings to a list then join the list
+    for option, value in selected_user_options.items():
+        command_option_list.append(f"--{option} {value}")
+    command_option_string = ' '.join([string for string in command_option_list])
+    current_one_liner = f'python3 test_program_name {command_option_string}'
+    print(current_one_liner)
+    # Get a timestamp and write the command to the history log file
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    with open('dcd_command_history.txt', 'a') as history:
+        history.write(f'{timestamp} : {current_one_liner}')
+    # Add in a ring buffer size to the history log file
+
+
+#Man page for this function
+"""Here is a one-liner of your settings for this trade; if you wish to make "
+          "this exact trade again,"
+          "you can copy this command to save somewhere and/or alias it along with different trades you plan on making "
+          "on a frequent basis. This command will be saved to the 'previous_commands.txt' in this programs directory. "
+          "Besides manually reading this file, if you would like to print your previous commands, run this program "
+          "with the --history option."""
+
+
+# Take all the options passed on the command line and assign them to their values. Then, once they are in place,
+# ask the user for each option they did not pass. I will then take that input and make it the value of the option for
+# the entire click command context. Once the entire click command context is entered, validate the options of the
+# options that need additional options, and then prompt the user for those too. Once all options that are required
+# have been entered, list all the options out in a number list and ask for user confirmation. If they say no,
+# then ask which number from the list they would like to modify and give them a prompt to modify it. After that,
+# return to the confirmation menu for the user to confirm. If they confirm, pass the final user options dictionary to
+# the main program and create a timestamped log of the one-liner that would replicate the user input commands they
+# entered for the trade.
 
 
 @click.command()
@@ -298,7 +359,8 @@ def finalize_user_inputs():
               required=False,
               # Use a time check function
               # type=click.Choice(),
-              help="The amount of time to wait before the sell order is placed if an RSI is hit")
+              help="The amount of time to wait before the sell order is placed if an RSI is hit. Format of 00:00:00 "
+                   "for hours, minutes, and seconds, minutes and seconds being between 0-59")
 # If basic sell
 @click.option("--basic_sell_profit",
               required=False,
@@ -344,6 +406,7 @@ def finalize_user_inputs():
               type=float,
               help="The percentage of profit you want to skim off to keep and not use to be swing traded."
               )
+# History command that reads file output from the command history
 def merge_user_inputs(**kwargs):
     # take the dictionary of values from menu and compare it to the kwargs and any empty kwargs put the value in it
     global menu_assigned_options
@@ -359,6 +422,7 @@ def merge_user_inputs(**kwargs):
         # Merge the click command line options with the menu options overwriting the click options
         final_user_options = kwargs | menu_assigned_options
         finalize_user_inputs()
+    repeat_one_liner()
 
     return final_user_options
 
