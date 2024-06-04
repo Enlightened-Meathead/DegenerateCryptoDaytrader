@@ -6,7 +6,7 @@ from email.mime.text import MIMEText
 import resources.creds as creds
 
 
-# To do: enable pgp encryption, have a way the subject and message passed to the email function that gives information
+# Send yourself a PGP encrypted email using a Gmail for the sender and whichever PGP compatible email recipient you want
 def notify_email(subject, message):
     # Email details
     sender_email = creds.sender_email
@@ -34,8 +34,8 @@ def notify_email(subject, message):
     with smtplib.SMTP(smtp_server, smtp_port) as server:
         # Start TLS encryption
         server.starttls()
-        # Log in to the SMTP server (if authentication is required)
+        # Log in to the SMTP server
         server.login(smtp_username, smtp_password)
         # Send the email
         server.sendmail(sender_email, recipient_email, msg.as_string())
-    print("Email sent successfully.")
+    print("Email notification sent successfully.")

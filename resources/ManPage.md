@@ -17,3 +17,8 @@ the profit you want to keep and NOT be used to swing trade.
 --initial_capital : the set amount to trade with you are using to buy each time if you profit harvest or the amount you
 are starting with in your swing trading.
 --minimum_capital : optional, if the amount the account drops below the amount you set here, notify you and withhold further trade
+"""
+Upon a sell, a profit or loss generated can have an impact on other protocols. To manage this, multiple reallocation
+options are necessary to adjust for lost or increased portfolio capital. Once a sell is completed, a user defined profit
+or loss reallocation protocol is initiated, or P/LRP.
+"""

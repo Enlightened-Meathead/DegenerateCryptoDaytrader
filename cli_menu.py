@@ -32,6 +32,7 @@ BEFORE USING THIS PROGRAM, READ THE DOCUMENTATION AND/OR MAN PAGE!
 ==================================================================
 """
 # Right now, for one-liners make sure any additional option dependencies are declared before their parent option
+
 # Options that become required only if other options are called
 OPTION_DEPENDENCIES = {
     'basic_buy': ['basic_buy_price'],
@@ -99,7 +100,7 @@ check if the passed options require optional dependencies. for every global tota
 enter them'''
 
 
-# Figure out a way to shrink this function down...
+# Figure out a way to shrink this function down in the future.
 # Click CLI menu
 def click_menu(ctx, param, value):
     global REQUIRED_OPTIONS
@@ -150,9 +151,11 @@ def integer_or_cancel(user_input):
 
 # Could definitely be optimized, but for now its functional
 """This big kahuna is a user review menu that takes the user inputs from the command line and menu then lets them 
-review them, update them, then once the user confirms their final settings, take all the user inputs and converts 
+review them and update them. Once the user confirms their final settings, it takes all the user inputs and converts 
 them to a one-liner they can copy paste if they want to run the same trade and stores it into a command history log 
 file for this program"""
+
+
 def finalize_user_inputs():
     global final_user_options
     global click_objects_dict
@@ -202,7 +205,7 @@ def finalize_user_inputs():
                 user_option_change = modify_choice_dict[user_int]
                 # Get the choices object from the dictionary of options and their corresponding choices
                 change_choices = click_objects_dict[user_option_change]
-                # Convert the choice object into a list to use as the choices for the prompt
+                # Convert the change_choices object into a list to use as the choices for the prompt
                 try:
                     choice_list = [choice for choice in change_choices.choices]
                 except AttributeError:
@@ -212,6 +215,7 @@ def finalize_user_inputs():
 
                 # If the choice list is a list, make that the type
                 if isinstance(choice_list, list):
+                    #if type(choice_list) == list:
                     changed_option_value = click.prompt(f'Enter new value for {user_option_change}',
                                                         type=click.Choice(choice_list))
                 else:
@@ -241,6 +245,7 @@ def finalize_user_inputs():
                                        "will start. If not, type no to go back and modify",
                                        type=click.Choice(['CONFIRM', 'no']))
 
+
 # Type check function for the click options to make sure they meet the required format
 def check_time_format(input_value):
     time_format = r'^(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d$'
@@ -250,6 +255,7 @@ def check_time_format(input_value):
         return input_value
     else:
         raise click.BadParameter(invalid_message)
+
 
 # Type check for the click options that makes sure the RSI and percentages are in range of 0-100
 def check_percentage(input_value):
@@ -269,7 +275,7 @@ def check_enough_capital(input_value):
         raise click.BadParameter("Please enter a positive number of the value you wish to buy the trade with")
 
 
-# print a one-liner that the user can copy and paste the next time they want to run this trade as a one-liner
+# Print a one-liner that the user can copy and paste the next time they want to run this trade as a one-liner
 def repeat_one_liner():
     global selected_user_options
     # Make this a config setting that lets the user save what they have their alias to the log file
@@ -280,22 +286,32 @@ def repeat_one_liner():
     for option, value in selected_user_options.items():
         command_option_list.append(f"--{option} {value}")
     command_option_string = ' '.join([string for string in command_option_list])
-    current_one_liner = f'python3 test_program_name {command_option_string}'
+    current_one_liner = f'python3 {program_alias} {command_option_string}'
     print(current_one_liner)
     # Get a timestamp and write the command to the history log file
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    with open('dcd_command_history.txt', 'a') as history:
-        history.write(f'{timestamp} : {current_one_liner}')
+    with open('./resources/dcd_command_history.txt', 'a') as history:
+        history.write(f'\n{timestamp} : {current_one_liner}')
     # Add in a ring buffer size to the history log file
+    # Man page entry for this function
 
 
-#Man page for this function
-"""Here is a one-liner of your settings for this trade; if you wish to make "
-          "this exact trade again,"
-          "you can copy this command to save somewhere and/or alias it along with different trades you plan on making "
-          "on a frequent basis. This command will be saved to the 'previous_commands.txt' in this programs directory. "
-          "Besides manually reading this file, if you would like to print your previous commands, run this program "
-          "with the --history option."""
+# Read the command history log file
+def read_history(ctx, param, value):
+    if value == "view":
+        with open('resources/dcd_command_history.txt', 'r') as history:
+            print(history.read())
+            exit()
+    elif value == "clear":
+        # Open the file with write, which clears the contents of the file
+        with open('./resources/dcd_command_history.txt', 'w') as history:
+            exit()
+
+
+"""Here is a one-liner of your settings for this trade; if you wish to make " "this exact trade again," "you can copy 
+this command to save somewhere and/or alias it along with different trades you plan on making " "on a frequent basis. 
+This command will be saved to the 'dcd_command_history.txt' in this programs directory. " "Besides manually reading 
+this file, if you would like to print your previous commands, run this program " "with the --history option."""
 
 
 # Take all the options passed on the command line and assign them to their values. Then, once they are in place,
@@ -312,10 +328,12 @@ def repeat_one_liner():
 @click.command()
 @click.option("--menu",
               type=click.Choice(["menu", "no_menu"]),
+              help="Specify whether you are going to use a one liner without the input and settings review menu",
               callback=click_menu,
               default="menu")
+# Currently only email based notify, add exchange based trading and atomic wallet GUI manipulation in the future
 @click.option("--bot_type",
-              type=click.Choice(["exchange", "atomic", "notify"]),
+              type=click.Choice(["notify"]),
               help="Specify the type of bot")
 @click.option("--asset",
               type=click.Choice(["bitcoin", "ethereum", "solana", "xrp", "cardano", "dogecoin", "shiba-inu", "monero"]),
@@ -334,10 +352,10 @@ def repeat_one_liner():
               type=click.Choice(["basic_sell", "ladder"]),
               callback=validate_dependent_options,
               help="The type of sell order scan type you'd like to  monitor the asset with to alert a sell signal")
-# Possibly refactor the name to stop_loss_limit later
 @click.option("--percent_loss_limit",
               type=check_percentage,
-              help="The percent you will allow your initial buy capital to drop by before selling at a loss"
+              help="The percent you will allow your initial buy capital to drop by before selling at a loss. Same "
+                   "thing as a stop loss percentage."
               )
 @click.option("--profit_loss_function",
               type=click.Choice(["profit_harvest", "swing_trade"]),
@@ -379,7 +397,8 @@ def repeat_one_liner():
 @click.option("--minimum_ladder_profit",
               required=False,
               type=check_percentage,
-              help="The minimum profit percent you want before the sell time begins for the ladder profit sell function"
+              help="The minimum profit percent gain you want before the sell time begins for the ladder profit sell "
+                   "function"
               )
 @click.option("--ladder_step_gain",
               required=False,
@@ -416,25 +435,44 @@ def repeat_one_liner():
               help="The percentage of profit you want to skim off to keep and not use to be swing traded."
               )
 # History command that reads file output from the command history
+@click.option("--history",
+              required=False,
+              type=click.Choice(["view", "clear"]),
+              callback=read_history,
+              help="Prints the content of your command history for this program to the terminal.")
 def merge_user_inputs(**kwargs):
-    # take the dictionary of values from menu and compare it to the kwargs and any empty kwargs put the value in it
     global menu_assigned_options
     global final_user_options
     global click_objects_dict
-    # Take every click option and make into a nested dictionary to be referenced for outside the scope of the click
-    # command
+    # Take every click option and make into a dictionary to be referenced for outside the scope of the click
+    # command options that normally are only accessible directly read from the initial command line input
     ctx = click.get_current_context()
     for param in ctx.command.params:
         click_objects_dict[param.name] = param.type
 
+    # If the user did not specify no_menu in the case of a one-liner, then give them a menu for any missing options
+    # and to have them review and confirm their settings
     if ctx.params['menu'] == 'menu':
         # Merge the click command line options with the menu options overwriting the click options
         final_user_options = kwargs | menu_assigned_options
+        # Menu, review page, dependency option checks, and finalize everything into a single dictionary
         finalize_user_inputs()
         repeat_one_liner()
-    print(final_user_options)
+        print(f"\n{final_user_options}")
     return final_user_options
 
 
+'''
+ This file is way too long as it is, but after writing all this I learned it would be pretty difficult to run click
+ in a different file and pass the final user options to the file, so I'm just writing it in here for now to get it
+ WORKING and if I have time in the future to nitpick and divide this file up I will
+'''
+# 1. Parse user input
 if __name__ == '__main__':
     merge_user_inputs()
+
+
+def run_program_procedure():
+    global final_user_options
+    pass
+

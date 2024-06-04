@@ -1,4 +1,3 @@
-# NEED TO TEST: ladder sell scan. Everything else WORKS!!!
 # Scans that repeatedly look for the desired outcome and returns the value based on the asset given
 import asyncio
 import time
@@ -53,7 +52,7 @@ def current_percent_difference(asset, bought_price):
 
 
 # Basic Buy Function: Selects the market pair, gets value to buy at, calls the scan function to see what the price is,
-# then once the price signal is reached, buys the asset
+# then once the price signal is reached, signals to buy the asset
 def basic_buy_scan(asset, buy_price, sleep_duration):
     # If the price of the asset is met, call the buy asset function
     buy_signal = False
@@ -168,9 +167,9 @@ def basic_sell_scan(asset, bought_price, percent_wanted, percent_loss_limit):
 '''
 
 
-# Make sure to set the percent loss limit as negative step gain as negative with a -
 def ladder_sell_scan(asset, bought_price, percent_wanted, percent_loss_limit, positive_step_gain, negative_step_gain,
                      timer_duration, sleep_duration, step_sensitivity_value=1, timer_sensitivity_value=1):
+    negative_step_gain = -negative_step_gain
     sell_signal = False
     timer_started = False
     change_difference = 0
