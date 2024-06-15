@@ -2,6 +2,11 @@ from datetime import datetime
 import re
 import click
 
+import logic_functions.scan_functions as scf
+import logic_functions.notify_functions as nof
+import logic_functions.profit_loss_functions as plf
+import logic_functions.logging_functions as lof
+
 menu_banner = """
 $$$$$$                                                                
 $     $ $$$$$$  $$$$  $$$$$$ $    $ $$$$$$ $$$$$    $$   $$$$$ $$$$$$ 
@@ -465,7 +470,7 @@ def merge_user_inputs(**kwargs):
 '''
  This file is way too long as it is, but after writing all this I learned it would be pretty difficult to run click
  in a different file and pass the final user options to the file, so I'm just writing it in here for now to get it
- WORKING and if I have time in the future to nitpick and divide this file up I will
+ WORKING and if I have time in the future to nitpick and divide this file up, I will
 '''
 # 1. Parse user input
 if __name__ == '__main__':
@@ -474,5 +479,84 @@ if __name__ == '__main__':
 
 def run_program_procedure():
     global final_user_options
-    pass
+    print("Gathered all user input. Starting program...")
+    buy_signal = False
+    sell_signal = False
+    amount_to_buy = 0
+    asset_bought_price = 0
+    amount_to_sell = 0
+    amount_to_keep = 0
+    asset_sold_price = 0
+    # 2. Based on initial buy or sell scan, begin the scan protocol to buy or sell. Also, rescan if the user doesn't
+    # reply in a certain amount of time or the user says to cancel and restart the scan
+    if final_user_options['start_type'] == 'buy':
+        if final_user_options['buy_order_type'] == 'basic_buy':
+            buy_signal = scf.basic_buy_scan(final_user_options['asset'],
+                                            final_user_options['basic_buy_price'],
+                                            5)
+        elif final_user_options['buy_order_type'] == 'rsi_buy':
+            buy_signal = scf.rsi_buy_scan(final_user_options['asset'],
+                                          final_user_options['rsi_buy_number'],
+                                          final_user_options['rsi_drop_limit'],
+                                          final_user_options['rsi_wait_period'])
+    elif final_user_options['start_type'] == 'sell':
+        if final_user_options['sell_order_type'] == 'basic_sell':
+            sell_signal = scf.basic_sell_scan(final_user_options['asset'],
+                                              asset_bought_price,
+                                              final_user_options['basic_sell_profit'],
+                                              final_user_options['percent_loss_limit'])
+        if final_user_options['sell_order_type'] == 'ladder':
+            sell_signal = scf.ladder_sell_scan(final_user_options['asset'],
+                                               asset_bought_price,
+                                               final_user_options['minimum_ladder_profit'],
+                                               final_user_options['percent_loss_limit'],
+                                               final_user_options['ladder_step_gain'],
+                                               final_user_options['ladder_step_loss'],
+                                               final_user_options['ladder_timer_duration'],
+                                               final_user_options['ladder_step_sensitivity'],
+                                               final_user_options['ladder_timer_sensitivity'])
+    else:
+        print("The program was unable to determine a buy or sell to start the trade. ABORTING!")
+        exit()
+    # 3. Once a buy or sell signal is true, calculate how much to sell with plrp or tell the user to buy now
+    subject = ''
+    message = ''
+    if buy_signal:
+        print("Buy signal found!")
+        asset_bought_price = scf.current_price_scan(final_user_options['asset'])
+        amount_to_buy = final_user_options['initial_capital'] / asset_bought_price
+        subject = 'DCDB'
+        message = (f"Buy {amount_to_buy} {final_user_options['asset']} at the current price of {asset_bought_price} at "
+                   f"the time of this email")
+    elif sell_signal:
+        print("Sell signal found!")
+        amount_bought = final_user_options['initial_capital'] / asset_bought_price
+        profit_loss = plf.profit_loss_percent(final_user_options['asset'], asset_bought_price)
+        if final_user_options['profit_loss_function'] == 'profit_harvest':
+            # add in a user click option if they want a full sell for the profit harvest
+            amount_to_sell = plf.profit_harvest(asset_bought_price, amount_bought)
+        elif final_user_options['profit_loss_function'] == 'swing_trade':
+            amount_to_sell = final_user_options['initial_capital'] / scf.current_price_scan(final_user_options['asset'])
+            next_buy_amount = plf.swing_trade(amount_bought, amount_to_sell, final_user_options['swing_trade_skim'])
+        asset_sold_price = scf.current_price_scan(final_user_options['asset'])
+        subject = 'DCDS'
+        message = (f"Sell {amount_to_sell} from your {amount_bought} {final_user_options['asset']} according to your "
+                   f"selected {final_user_options['profit_loss_function']} profit loss function for a current {profit_loss}")
+    else:
+        print("The buy and sell signal checks ended, but somehow none were set to true. ABORTING!")
+    # 4. Take the values I want in the message and the put them into an email to notify me
+    nof.notify_email(subject, message)
 
+
+run_program_procedure()
+
+'''
+barebones notify version now ready for testing, once this works, add all the stuff below here
+'''
+# 5. Wait for a response for the email, and if told to wait, wait the specified time. Otherwise, log the trade
+# 6. If an action was taken, log all the info to a spreadsheet and notify the user it completed successfully
+
+# 7. Based on the outcome of the previous trade, take the values that would change for the new trade and change those
+# in the user options dictionary
+
+# 8. repeat the process with the new numbers

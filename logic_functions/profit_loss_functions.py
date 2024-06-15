@@ -1,5 +1,5 @@
 # Functions that calculate profit or loss and reallocates assets once a trade is made
-import scan_functions as scf
+import logic_functions.scan_functions as scf
 
 
 # Little function that return the profit or loss percentage in decimal form, ie 10% == 0.10
@@ -25,8 +25,7 @@ def profit_harvest(bought_price, amount_bought, full_sell=False):
         return profit_to_sell
     else:
         # If a full sell is selected, sell the entire position
-        sell_all = "max"
-        return sell_all
+        return 'sell_all'
 
 
 """
@@ -46,7 +45,7 @@ def swing_trade(amount_bought, amount_sold, skim_percent=0):
     profit_to_keep = 0
     if skim_percent > 0:
         profit_to_keep = (float(amount_sold) - float(amount_bought)) * (skim_percent * 0.01)
-    # Return the amount in dollars to use for the next buy order
+    # Return the amount in to use for the next buy order
     next_buy_amount = amount_sold - profit_to_keep
     print(next_buy_amount)
     return next_buy_amount

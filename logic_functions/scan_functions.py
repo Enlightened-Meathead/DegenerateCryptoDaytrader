@@ -9,7 +9,7 @@ from selenium import webdriver
 from resources import data_urls
 
 # As of this comment, the coinbase public websocket seemingly only supports data on the cryptos they directly sell, so
-# monero is currently not supported :'(
+# monero is currently not supported :'( will definitely add in the future...
 asset_ticker_pair = {'bitcoin': 'BTC', 'ethereum': 'ETH', 'solana': 'SOL', 'xrp': 'XRP', 'cardano': 'ADA',
                      'dogecoin': 'DOGE', 'shiba-inu': 'SHIB', 'monero': 'XMR'
                      }
