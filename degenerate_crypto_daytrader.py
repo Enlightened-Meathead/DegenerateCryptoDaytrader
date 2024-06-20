@@ -1,6 +1,7 @@
 from datetime import datetime
 import re
 import click
+import asyncio
 
 import logic_functions.scan_functions as scf
 import logic_functions.notify_functions as nof
@@ -105,6 +106,7 @@ check if the passed options require optional dependencies. for every global tota
 enter them'''
 
 
+# IF YOU ENTER THE MENU OPTION AS THE FIRST OPTION PASSED, NO ARGUMENTS GET PASSED TO CLICK
 # Figure out a way to shrink this function down in the future.
 # Click CLI menu
 def click_menu(ctx, param, value):
@@ -158,7 +160,8 @@ def integer_or_cancel(user_input):
 """This big kahuna is a user review menu that takes the user inputs from the command line and menu then lets them 
 review them and update them. Once the user confirms their final settings, it takes all the user inputs and converts 
 them to a one-liner they can copy paste if they want to run the same trade and stores it into a command history log 
-file for this program"""
+file for this program. The reason this function is so massive is because I was struggling to pass the click context 
+to multiple functions without issues so here we are for now with this abomination"""
 
 
 def finalize_user_inputs():
@@ -284,7 +287,7 @@ def check_enough_capital(input_value):
 def repeat_one_liner():
     global selected_user_options
     # Make this a config setting that lets the user save what they have their alias to the log file
-    program_alias = "test_program_name"
+    program_alias = "degenerate_crypto_daytrader"
     command_option_list = []
     print("\n===========================\nCurrent Options One-Liner:\n===========================")
     # Add the --option value strings to a list then join the list
@@ -445,10 +448,24 @@ this file, if you would like to print your previous commands, run this program "
               type=click.Choice(["view", "clear"]),
               callback=read_history,
               help="Prints the content of your command history for this program to the terminal.")
+def main(**kwargs):
+    merge_user_inputs(**kwargs)
+    run_program_procedure()
+
+
+"""
+ For some ridiculous reason, whatever function defined directly after the click options, when the program is called,
+ click passes all the values to that function even if you define zero arguments for that function, so this main 
+ function takes the click options and command line values pass to click and then passes it to the two functions 
+ required for the program
+"""
+
+
 def merge_user_inputs(**kwargs):
     global menu_assigned_options
     global final_user_options
     global click_objects_dict
+
     # Take every click option and make into a dictionary to be referenced for outside the scope of the click
     # command options that normally are only accessible directly read from the initial command line input
     ctx = click.get_current_context()
@@ -457,14 +474,14 @@ def merge_user_inputs(**kwargs):
 
     # If the user did not specify no_menu in the case of a one-liner, then give them a menu for any missing options
     # and to have them review and confirm their settings
+
+    # Merge the click command line options with the menu options overwriting the click options
+    final_user_options = kwargs | menu_assigned_options
     if ctx.params['menu'] == 'menu':
-        # Merge the click command line options with the menu options overwriting the click options
-        final_user_options = kwargs | menu_assigned_options
         # Menu, review page, dependency option checks, and finalize everything into a single dictionary
         finalize_user_inputs()
         repeat_one_liner()
-        print(f"\n{final_user_options}")
-    return final_user_options
+    print(f"\n{final_user_options}")
 
 
 '''
@@ -472,9 +489,6 @@ def merge_user_inputs(**kwargs):
  in a different file and pass the final user options to the file, so I'm just writing it in here for now to get it
  WORKING and if I have time in the future to nitpick and divide this file up, I will
 '''
-# 1. Parse user input
-if __name__ == '__main__':
-    merge_user_inputs()
 
 
 def run_program_procedure():
@@ -489,6 +503,7 @@ def run_program_procedure():
     asset_sold_price = 0
     # 2. Based on initial buy or sell scan, begin the scan protocol to buy or sell. Also, rescan if the user doesn't
     # reply in a certain amount of time or the user says to cancel and restart the scan
+    print(final_user_options['start_type'])
     if final_user_options['start_type'] == 'buy':
         if final_user_options['buy_order_type'] == 'basic_buy':
             buy_signal = scf.basic_buy_scan(final_user_options['asset'],
@@ -523,8 +538,8 @@ def run_program_procedure():
     message = ''
     if buy_signal:
         print("Buy signal found!")
-        asset_bought_price = scf.current_price_scan(final_user_options['asset'])
-        amount_to_buy = final_user_options['initial_capital'] / asset_bought_price
+        asset_bought_price = float(asyncio.run(scf.current_price_scan(final_user_options['asset'])))
+        amount_to_buy = float(final_user_options['initial_capital']) / asset_bought_price
         subject = 'DCDB'
         message = (f"Buy {amount_to_buy} {final_user_options['asset']} at the current price of {asset_bought_price} at "
                    f"the time of this email")
@@ -548,11 +563,6 @@ def run_program_procedure():
     nof.notify_email(subject, message)
 
 
-run_program_procedure()
-
-'''
-barebones notify version now ready for testing, once this works, add all the stuff below here
-'''
 # 5. Wait for a response for the email, and if told to wait, wait the specified time. Otherwise, log the trade
 # 6. If an action was taken, log all the info to a spreadsheet and notify the user it completed successfully
 
@@ -560,3 +570,11 @@ barebones notify version now ready for testing, once this works, add all the stu
 # in the user options dictionary
 
 # 8. repeat the process with the new numbers
+
+
+'''
+barebones notify version now ready for testing, once this works, add all the stuff below here
+'''
+
+if __name__ == '__main__':
+    main()

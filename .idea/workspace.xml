@@ -4,12 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="790062d1-3eac-45d2-9664-133ab5dfac73" name="Changes" comment="Added history option to view and clear previous commands as well as various tidying up. Started bringing everything together laying out the logic for the main program procedure">
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+    <list default="true" id="790062d1-3eac-45d2-9664-133ab5dfac73" name="Changes" comment="Added final function to the main program file. Going to begin testing for barebones notify functionality and begin debugging (unless there are no bugs... doubtful!)">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cli_menu.py" beforeDir="false" afterPath="$PROJECT_DIR$/cli_menu.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/logic_functions/profit_loss_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/logic_functions/profit_loss_functions.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/logic_functions/scan_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/logic_functions/scan_functions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/degenerate_crypto_daytrader.py" beforeDir="false" afterPath="$PROJECT_DIR$/degenerate_crypto_daytrader.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -59,6 +57,7 @@
   "keyToString": {
     "Python.buy_protocols.executor": "Run",
     "Python.cli_menu.executor": "Run",
+    "Python.degenerate_crypto_daytrader.executor": "Debug",
     "Python.logging_functions.executor": "Run",
     "Python.main.executor": "Run",
     "Python.menu_test.executor": "Run",
@@ -71,7 +70,7 @@
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "git-widget-placeholder": "main",
-    "last_opened_file_path": "/home/stephen/Projects/degenerate_crypto_daytrader",
+    "last_opened_file_path": "/home/stephen/Coding/PythonProgrammingClass",
     "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable"
   }
 }]]></component>
@@ -272,7 +271,15 @@
       <option name="project" value="LOCAL" />
       <updated>1717467255916</updated>
     </task>
-    <option name="localTasksCounter" value="20" />
+    <task id="LOCAL-00020" summary="Added final function to the main program file. Going to begin testing for barebones notify functionality and begin debugging (unless there are no bugs... doubtful!)">
+      <option name="closed" value="true" />
+      <created>1718418446133</created>
+      <option name="number" value="00020" />
+      <option name="presentableId" value="LOCAL-00020" />
+      <option name="project" value="LOCAL" />
+      <updated>1718418446133</updated>
+    </task>
+    <option name="localTasksCounter" value="21" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -292,6 +299,7 @@
     <MESSAGE value="Added CLI menu robustness and mixed user command line input with CLI interface menu feedback as well as added a review page to confirm your settings." />
     <MESSAGE value="Added more input filters and command history logging" />
     <MESSAGE value="Added history option to view and clear previous commands as well as various tidying up. Started bringing everything together laying out the logic for the main program procedure" />
-    <option name="LAST_COMMIT_MESSAGE" value="Added history option to view and clear previous commands as well as various tidying up. Started bringing everything together laying out the logic for the main program procedure" />
+    <MESSAGE value="Added final function to the main program file. Going to begin testing for barebones notify functionality and begin debugging (unless there are no bugs... doubtful!)" />
+    <option name="LAST_COMMIT_MESSAGE" value="Added final function to the main program file. Going to begin testing for barebones notify functionality and begin debugging (unless there are no bugs... doubtful!)" />
   </component>
 </project>
