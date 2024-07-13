@@ -1,12 +1,15 @@
+# Standard Library
 from datetime import datetime
 import re
 import click
 import asyncio
 
+# Local module imports
 import logic_functions.scan_functions as scf
 import logic_functions.notify_functions as nof
 import logic_functions.profit_loss_functions as plf
 import logic_functions.logging_functions as lof
+from order_class import Order
 
 menu_banner = """
 $$$$$$                                                                
@@ -46,7 +49,8 @@ OPTION_DEPENDENCIES = {
     'basic_sell': ['basic_sell_profit'],
     'ladder': ['minimum_ladder_profit', 'ladder_step_gain', 'ladder_step_loss', 'ladder_timer_duration',
                'ladder_step_sensitivity', 'ladder_timer_sensitivity'],
-    'swing_trade': ['swing_trade_skim']
+    'swing_trade': ['swing_trade_skim'],
+    'sell': ['asset_bought_price']
 }
 REQUIRED_OPTIONS = ['bot_type', 'asset', 'capital', 'start_type', 'buy_order_type', 'sell_order_type',
                     'percent_loss_limit', 'profit_loss_function', 'initial_capital']
@@ -268,7 +272,7 @@ def check_time_format(input_value):
 # Type check for the click options that makes sure the RSI and percentages are in range of 0-100
 def check_percentage(input_value):
     invalid_message = "Invalid percentage. Please give a value between 0 and 100"
-    if 100 >= float(input_value) > 0:
+    if 100 >= float(input_value) >= 0:
         return input_value
     else:
         raise click.BadParameter(invalid_message)
@@ -293,8 +297,12 @@ def repeat_one_liner():
     # Add the --option value strings to a list then join the list
     for option, value in selected_user_options.items():
         command_option_list.append(f"--{option} {value}")
+    # Take out the menu choice to be last so the callback function doesn't start the menu before it read the inputs
+    menu_choice = command_option_list.pop()
+    # Reverse the user inputs so click doesn't do a callback if the option dependency was defined after the parent
+    command_option_list.reverse()
     command_option_string = ' '.join([string for string in command_option_list])
-    current_one_liner = f'python3 {program_alias} {command_option_string}'
+    current_one_liner = f'python3 {program_alias}.py {command_option_string} {menu_choice}'
     print(current_one_liner)
     # Get a timestamp and write the command to the history log file
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -344,13 +352,14 @@ this file, if you would like to print your previous commands, run this program "
               type=click.Choice(["notify"]),
               help="Specify the type of bot")
 @click.option("--asset",
-              type=click.Choice(["bitcoin", "ethereum", "solana", "xrp", "cardano", "dogecoin", "shiba-inu", "monero"]),
+              type=click.Choice(["bitcoin", "ethereum", "solana", "xrp", "hedera", "cardano", "dogecoin", "shiba-inu"]),
               help="Specify the crypto asset to buy and sell")
 @click.option("--capital",
               type=click.Choice(["dollars", "tether", "usdc", "dai"]),
               help="The type of capital you wish to buy the asset with and sell the asset for")
 @click.option("--start_type",
               type=click.Choice(["buy", "sell", "previous"]),
+              callback=validate_dependent_options,
               help="The starting order type")
 @click.option("--buy_order_type",
               type=click.Choice(["basic_buy", "rsi_buy"]),
@@ -375,6 +384,13 @@ this file, if you would like to print your previous commands, run this program "
               help="Specify the initial amount of capital you wish to place your buy order"
               )
 # Additional options that could become required
+# If starting with sell
+@click.option("--asset_bought_price",
+              required=False,
+              type=float,
+              help="If starting with a sell order, the price of the asset you bought it for or what its currently at "
+                   "that you want to monitor to compare the future price to"
+              )
 # If basic buy
 @click.option("--basic_buy_price",
               required=False,
@@ -450,6 +466,8 @@ this file, if you would like to print your previous commands, run this program "
               help="Prints the content of your command history for this program to the terminal.")
 def main(**kwargs):
     merge_user_inputs(**kwargs)
+    #print(final_user_options)
+
     run_program_procedure()
 
 
@@ -481,18 +499,50 @@ def merge_user_inputs(**kwargs):
         # Menu, review page, dependency option checks, and finalize everything into a single dictionary
         finalize_user_inputs()
         repeat_one_liner()
-    print(f"\n{final_user_options}")
+    #print(f"\n{final_user_options}")
 
 
 '''
  This file is way too long as it is, but after writing all this I learned it would be pretty difficult to run click
  in a different file and pass the final user options to the file, so I'm just writing it in here for now to get it
- WORKING and if I have time in the future to nitpick and divide this file up, I will
+ WORKING and if I have time in the future to nitpick and divide this file up, I will do a refactor when I'm more skilled
+'''
+
+'''
+pass the final user options to a class
 '''
 
 
 def run_program_procedure():
+    # 1. After gathering and parsing all user input into the Order ob
     global final_user_options
+    order = Order(
+        bot_type=final_user_options['bot_type'],
+        asset=final_user_options['asset'],
+        capital=final_user_options['capital'],
+        start_type=final_user_options['start_type'],
+        buy_order_type=final_user_options['buy_order_type'],
+        sell_order_type=final_user_options['sell_order_type'],
+        percent_loss_limit=final_user_options['percent_loss_limit'],
+        profit_loss_function=final_user_options['profit_loss_function'],
+        initial_capital=final_user_options['initial_capital'],
+        menu=final_user_options['menu'],
+        # Click already assigns optional inputs to None, but for clarity I added the .get and None for key errors
+        asset_bought_price=final_user_options.get('asset_bought_price', None),
+        basic_buy_price=final_user_options.get('basic_buy_price', None),
+        basic_sell_profit=final_user_options.get('basic_sell_profit', None),
+        swing_trade_skim=final_user_options.get('swing_trade_skim', None),
+        rsi_buy_number=final_user_options.get('rsi_buy_number', None),
+        rsi_drop_limit=final_user_options.get('rsi_drop_limit', None),
+        rsi_wait_period=final_user_options.get('rsi_wait_period', None),
+        minimum_ladder_profit=final_user_options.get('minimum_ladder_profit', None),
+        ladder_step_gain=final_user_options.get('ladder_step_gain', None),
+        ladder_step_loss=final_user_options.get('ladder_step_loss', None),
+        ladder_timer_duration=final_user_options.get('ladder_timer_duration', None),
+        ladder_step_sensitivity=final_user_options.get('ladder_step_sensitivity', None),
+        ladder_timer_sensitivity=final_user_options.get('ladder_timer_sensitivity', None),
+        history=final_user_options.get('history', None)
+    )
     print("Gathered all user input. Starting program...")
     buy_signal = False
     sell_signal = False
@@ -503,33 +553,21 @@ def run_program_procedure():
     asset_sold_price = 0
     # 2. Based on initial buy or sell scan, begin the scan protocol to buy or sell. Also, rescan if the user doesn't
     # reply in a certain amount of time or the user says to cancel and restart the scan
-    print(final_user_options['start_type'])
-    if final_user_options['start_type'] == 'buy':
-        if final_user_options['buy_order_type'] == 'basic_buy':
-            buy_signal = scf.basic_buy_scan(final_user_options['asset'],
-                                            final_user_options['basic_buy_price'],
-                                            5)
-        elif final_user_options['buy_order_type'] == 'rsi_buy':
-            buy_signal = scf.rsi_buy_scan(final_user_options['asset'],
-                                          final_user_options['rsi_buy_number'],
-                                          final_user_options['rsi_drop_limit'],
-                                          final_user_options['rsi_wait_period'])
-    elif final_user_options['start_type'] == 'sell':
-        if final_user_options['sell_order_type'] == 'basic_sell':
-            sell_signal = scf.basic_sell_scan(final_user_options['asset'],
-                                              asset_bought_price,
-                                              final_user_options['basic_sell_profit'],
-                                              final_user_options['percent_loss_limit'])
-        if final_user_options['sell_order_type'] == 'ladder':
-            sell_signal = scf.ladder_sell_scan(final_user_options['asset'],
-                                               asset_bought_price,
-                                               final_user_options['minimum_ladder_profit'],
-                                               final_user_options['percent_loss_limit'],
-                                               final_user_options['ladder_step_gain'],
-                                               final_user_options['ladder_step_loss'],
-                                               final_user_options['ladder_timer_duration'],
-                                               final_user_options['ladder_step_sensitivity'],
-                                               final_user_options['ladder_timer_sensitivity'])
+    if order.start_type == 'buy':
+        if order.buy_order_type == 'basic_buy':
+            buy_signal = scf.basic_buy_scan(order.asset, order.basic_buy_price,5)
+        elif order.buy_order_type == 'rsi_buy':
+            buy_signal = scf.rsi_buy_scan(order.asset, order.rsi_buy_number, order.rsi_drop_limit,
+                                          order.rsi_wait_period)
+    elif order.start_type == 'sell':
+        if order.sell_order_type == 'basic_sell':
+            sell_signal = scf.basic_sell_scan(order.asset, order.asset_bought_price, order.basic_sell_profit,
+                                              order.percent_loss_limit)
+        if order.sell_order_type == 'ladder':
+            sell_signal = scf.ladder_sell_scan(order.asset, order.asset_bought_price, order.minimum_ladder_profit,
+                                               order.percent_loss_limit, order.ladder_step_gain, order.ladder_step_loss,
+                                               order.ladder_timer_duration, order.ladder_step_sensitivity,
+                                               order.ladder_timer_sensitivity)
     else:
         print("The program was unable to determine a buy or sell to start the trade. ABORTING!")
         exit()
@@ -538,43 +576,55 @@ def run_program_procedure():
     message = ''
     if buy_signal:
         print("Buy signal found!")
-        asset_bought_price = float(asyncio.run(scf.current_price_scan(final_user_options['asset'])))
-        amount_to_buy = float(final_user_options['initial_capital']) / asset_bought_price
+        current_price = asyncio.run(scf.current_price_scan(order.asset))
+        amount_to_buy = order.initial_capital / order.asset_bought_price
         subject = 'DCDB'
-        message = (f"Buy {amount_to_buy} {final_user_options['asset']} at the current price of {asset_bought_price} at "
-                   f"the time of this email")
+        message = (
+
+            f"Buy {amount_to_buy} {order.asset} at the current price of ${current_price} at "
+            f"the time of this email")
     elif sell_signal:
         print("Sell signal found!")
-        amount_bought = final_user_options['initial_capital'] / asset_bought_price
-        profit_loss = plf.profit_loss_percent(final_user_options['asset'], asset_bought_price)
-        if final_user_options['profit_loss_function'] == 'profit_harvest':
+        print(order.initial_capital)
+        amount_bought = order.initial_capital / order.asset_bought_price
+        profit_loss = plf.profit_loss_percent(order.asset, order.asset_bought_price)
+        if order.profit_loss_function == 'profit_harvest':
             # add in a user click option if they want a full sell for the profit harvest
-            amount_to_sell = plf.profit_harvest(asset_bought_price, amount_bought)
-        elif final_user_options['profit_loss_function'] == 'swing_trade':
-            amount_to_sell = final_user_options['initial_capital'] / scf.current_price_scan(final_user_options['asset'])
-            next_buy_amount = plf.swing_trade(amount_bought, amount_to_sell, final_user_options['swing_trade_skim'])
-        asset_sold_price = scf.current_price_scan(final_user_options['asset'])
+            amount_to_sell = plf.profit_harvest(order.asset_bought_price, amount_bought)
+        elif order.profit_loss_function == 'swing_trade':
+            amount_to_sell = order.initial_capital / scf.current_price_scan(order.asset)
+            next_buy_amount = plf.swing_trade(amount_bought, amount_to_sell, order.swing_trade_skim)
+        asset_sold_price = scf.current_price_scan(order.asset)
         subject = 'DCDS'
-        message = (f"Sell {amount_to_sell} from your {amount_bought} {final_user_options['asset']} according to your "
-                   f"selected {final_user_options['profit_loss_function']} profit loss function for a current {profit_loss}")
+        message = (f"Sell {amount_to_sell} from your {amount_bought} {order.asset} according to your "
+                   f"selected {order.profit_loss_function} profit loss function for a current {profit_loss}%")
     else:
         print("The buy and sell signal checks ended, but somehow none were set to true. ABORTING!")
+
     # 4. Take the values I want in the message and the put them into an email to notify me
     nof.notify_email(subject, message)
 
+    '''
+    barebones notify version now ready for testing, once this works, add all the stuff below here
+    '''
+    # 5. Wait for a response for the email, and if told to wait, wait the specified time. Otherwise, log the trade
+    '''
+    if bought or sold:
+        log current price
+    # 6. If an action was taken, log all the info to a spreadsheet and notify the user it completed successfully
+        send all the data to the spreadsheet (different logs if bought or sold)
+    '''
+    # 7. Based on the outcome of the previous trade, take the values that would change for the new trade and update them
+    '''
+    '''
+    # in the user options dictionary
 
-# 5. Wait for a response for the email, and if told to wait, wait the specified time. Otherwise, log the trade
-# 6. If an action was taken, log all the info to a spreadsheet and notify the user it completed successfully
-
-# 7. Based on the outcome of the previous trade, take the values that would change for the new trade and change those
-# in the user options dictionary
-
-# 8. repeat the process with the new numbers
+    # 8. repeat the process with the new numbers
 
 
-'''
-barebones notify version now ready for testing, once this works, add all the stuff below here
-'''
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    finally:
+        print("Main finished or failed to start")

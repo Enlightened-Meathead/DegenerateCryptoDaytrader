@@ -11,7 +11,7 @@ from resources import data_urls
 # As of this comment, the coinbase public websocket seemingly only supports data on the cryptos they directly sell, so
 # monero is currently not supported :'( will definitely add in the future...
 asset_ticker_pair = {'bitcoin': 'BTC', 'ethereum': 'ETH', 'solana': 'SOL', 'xrp': 'XRP', 'cardano': 'ADA',
-                     'dogecoin': 'DOGE', 'shiba-inu': 'SHIB', 'monero': 'XMR'
+                     'dogecoin': 'DOGE', 'shiba-inu': 'SHIB', 'monero': 'XMR', 'hedera': 'HBAR'
                      }
 
 
@@ -33,7 +33,7 @@ async def current_price_scan(asset):
     })
     async with websockets.connect(uri) as websocket:
         await websocket.send(subscribe_message)
-        print("Websocket  connection established")
+        #print("Websocket  connection established"
         while True:
             response = await websocket.recv()
             json_response = json.loads(response)
@@ -47,7 +47,8 @@ async def current_price_scan(asset):
 # Calculate the difference in percentage from the price bought to the current value of the asset
 def current_percent_difference(asset, bought_price):
     current_price = asyncio.run(current_price_scan(asset))
-    percent_difference = ((float(current_price) / bought_price) - 1) * 100
+    percent_difference = ((float(current_price) / float(bought_price)) - 1) * 100
+    print(percent_difference)
     return percent_difference
 
 
@@ -58,7 +59,7 @@ def basic_buy_scan(asset, buy_price, sleep_duration):
     buy_signal = False
     while not buy_signal:
         current_price = asyncio.run(current_price_scan(asset))
-        if float(buy_price) <= float(current_price):
+        if float(buy_price) >= float(current_price):
             # Initiate buy function for the asset named
             print(f"{asset} Bought due to basic buy")
             buy_signal = True
@@ -141,7 +142,7 @@ def basic_sell_scan(asset, bought_price, percent_wanted, percent_loss_limit):
         # Calculates the potential profit or loss percentage
         percent_difference = current_percent_difference(asset, bought_price)
         # If the profit percentage is greater than the desired gains or below the stop loss, sell
-        if percent_difference > percent_wanted or percent_difference < percent_loss_limit:
+        if percent_difference > float(percent_wanted) or percent_difference < float(percent_loss_limit):
             sell_signal = True
             print("sold to basic sell scan")
             return sell_signal
@@ -216,3 +217,6 @@ def ladder_sell_scan(asset, bought_price, percent_wanted, percent_loss_limit, po
             print("sold due to percent loss limit")
             return sell_signal
         time.sleep(sleep_duration)
+
+if __name__ == '__main__':
+    current_percent_difference('hedera', 0.07)

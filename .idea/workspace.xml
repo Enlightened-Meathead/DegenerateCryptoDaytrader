@@ -4,10 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="790062d1-3eac-45d2-9664-133ab5dfac73" name="Changes" comment="Added final function to the main program file. Going to begin testing for barebones notify functionality and begin debugging (unless there are no bugs... doubtful!)">
+    <list default="true" id="790062d1-3eac-45d2-9664-133ab5dfac73" name="Changes" comment="After 3 hours of literal debugging hell... IT WORKSSSSSSSSSSSS">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/degenerate_crypto_daytrader.py" beforeDir="false" afterPath="$PROJECT_DIR$/degenerate_crypto_daytrader.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/logic_functions/scan_functions.py" beforeDir="false" afterPath="$PROJECT_DIR$/logic_functions/scan_functions.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -57,7 +57,7 @@
   "keyToString": {
     "Python.buy_protocols.executor": "Run",
     "Python.cli_menu.executor": "Run",
-    "Python.degenerate_crypto_daytrader.executor": "Debug",
+    "Python.degenerate_crypto_daytrader.executor": "Run",
     "Python.logging_functions.executor": "Run",
     "Python.main.executor": "Run",
     "Python.menu_test.executor": "Run",
@@ -279,7 +279,15 @@
       <option name="project" value="LOCAL" />
       <updated>1718418446133</updated>
     </task>
-    <option name="localTasksCounter" value="21" />
+    <task id="LOCAL-00021" summary="After 3 hours of literal debugging hell... IT WORKSSSSSSSSSSSS">
+      <option name="closed" value="true" />
+      <created>1718848980991</created>
+      <option name="number" value="00021" />
+      <option name="presentableId" value="LOCAL-00021" />
+      <option name="project" value="LOCAL" />
+      <updated>1718848980991</updated>
+    </task>
+    <option name="localTasksCounter" value="22" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -300,6 +308,7 @@
     <MESSAGE value="Added more input filters and command history logging" />
     <MESSAGE value="Added history option to view and clear previous commands as well as various tidying up. Started bringing everything together laying out the logic for the main program procedure" />
     <MESSAGE value="Added final function to the main program file. Going to begin testing for barebones notify functionality and begin debugging (unless there are no bugs... doubtful!)" />
-    <option name="LAST_COMMIT_MESSAGE" value="Added final function to the main program file. Going to begin testing for barebones notify functionality and begin debugging (unless there are no bugs... doubtful!)" />
+    <MESSAGE value="After 3 hours of literal debugging hell... IT WORKSSSSSSSSSSSS" />
+    <option name="LAST_COMMIT_MESSAGE" value="After 3 hours of literal debugging hell... IT WORKSSSSSSSSSSSS" />
   </component>
 </project>
