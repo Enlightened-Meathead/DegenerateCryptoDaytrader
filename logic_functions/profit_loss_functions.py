@@ -21,7 +21,7 @@ def profit_harvest(bought_price, amount_bought, full_sell=False):
     if not full_sell:
         profit_to_sell = float(amount_bought) * profit_loss_percent(bought_price)
         # Return the dollar amount to sell
-        print(profit_to_sell)
+        print(f"Profit_to_sell: {profit_to_sell}")
         return profit_to_sell
     else:
         # If a full sell is selected, sell the entire position
@@ -47,5 +47,5 @@ def swing_trade(amount_bought, amount_sold, skim_percent=0):
         profit_to_keep = (float(amount_sold) - float(amount_bought)) * (skim_percent * 0.01)
     # Return the amount in to use for the next buy order
     next_buy_amount = amount_sold - profit_to_keep
-    print(next_buy_amount)
+    print(f"next_buy_amount: {next_buy_amount}")
     return next_buy_amount

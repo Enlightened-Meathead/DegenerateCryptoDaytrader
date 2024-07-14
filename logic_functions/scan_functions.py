@@ -40,15 +40,15 @@ async def current_price_scan(asset):
             # Check if message is a ticker message then parse the price
             if 'type' in json_response and json_response['type'] == 'ticker' and 'price' in json_response:
                 current_price = json_response['price']
-                print(current_price)
-                return current_price
+                print("current price: " + current_price)
+                return float(current_price)
 
 
 # Calculate the difference in percentage from the price bought to the current value of the asset
 def current_percent_difference(asset, bought_price):
     current_price = asyncio.run(current_price_scan(asset))
     percent_difference = ((float(current_price) / float(bought_price)) - 1) * 100
-    print(percent_difference)
+    print(f"Current Percent Difference: {percent_difference}")
     return percent_difference
 
 
@@ -137,16 +137,19 @@ if the connection is given a captcha, somehow recognize that and try a different
 
 def basic_sell_scan(asset, bought_price, percent_wanted, percent_loss_limit):
     # While the percent wanted is not equal to the current potential profit, set sell signal to false
+    print(f"bought price : {bought_price}")
+    print(f"percent_wanted: {percent_wanted}")
+    print(f"percent_loss limet: {percent_loss_limit}")
     sell_signal = False
     while not sell_signal:
         # Calculates the potential profit or loss percentage
         percent_difference = current_percent_difference(asset, bought_price)
         # If the profit percentage is greater than the desired gains or below the stop loss, sell
-        if percent_difference > float(percent_wanted) or percent_difference < float(percent_loss_limit):
+        if percent_difference > float(percent_wanted) or -percent_difference < float(percent_loss_limit):
             sell_signal = True
-            print("sold to basic sell scan")
+            print("Sold to basic sell scan")
             return sell_signal
-    return current_percent_difference
+    # return current_percent_difference
 
 
 '''

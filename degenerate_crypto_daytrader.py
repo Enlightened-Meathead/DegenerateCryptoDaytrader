@@ -308,6 +308,7 @@ def repeat_one_liner():
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     with open('./resources/dcd_command_history.txt', 'a') as history:
         history.write(f'\n{timestamp} : {current_one_liner}')
+    history.close()
     # Add in a ring buffer size to the history log file
     # Man page entry for this function
 
@@ -466,8 +467,6 @@ this file, if you would like to print your previous commands, run this program "
               help="Prints the content of your command history for this program to the terminal.")
 def main(**kwargs):
     merge_user_inputs(**kwargs)
-    #print(final_user_options)
-
     run_program_procedure()
 
 
@@ -585,16 +584,16 @@ def run_program_procedure():
             f"the time of this email")
     elif sell_signal:
         print("Sell signal found!")
-        print(order.initial_capital)
         amount_bought = order.initial_capital / order.asset_bought_price
         profit_loss = plf.profit_loss_percent(order.asset, order.asset_bought_price)
         if order.profit_loss_function == 'profit_harvest':
             # add in a user click option if they want a full sell for the profit harvest
             amount_to_sell = plf.profit_harvest(order.asset_bought_price, amount_bought)
         elif order.profit_loss_function == 'swing_trade':
-            amount_to_sell = order.initial_capital / scf.current_price_scan(order.asset)
+            current_price = asyncio.run(scf.current_price_scan(order.asset))
+            amount_to_sell = order.initial_capital / current_price
             next_buy_amount = plf.swing_trade(amount_bought, amount_to_sell, order.swing_trade_skim)
-        asset_sold_price = scf.current_price_scan(order.asset)
+        asset_sold_price = asyncio.run(scf.current_price_scan(order.asset))
         subject = 'DCDS'
         message = (f"Sell {amount_to_sell} from your {amount_bought} {order.asset} according to your "
                    f"selected {order.profit_loss_function} profit loss function for a current {profit_loss}%")
@@ -627,4 +626,4 @@ if __name__ == '__main__':
     try:
         main()
     finally:
-        print("Main finished or failed to start")
+        print("Bot finished!")
