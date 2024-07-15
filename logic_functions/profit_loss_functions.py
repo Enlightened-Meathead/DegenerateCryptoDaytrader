@@ -1,10 +1,11 @@
 # Functions that calculate profit or loss and reallocates assets once a trade is made
+import asyncio
 import logic_functions.scan_functions as scf
 
 
 # Little function that return the profit or loss percentage in decimal form, ie 10% == 0.10
 def profit_loss_percent(asset, bought_price):
-    profit_percent = float(scf.current_percent_difference(asset, bought_price)) * 0.01
+    profit_percent = float(asyncio.run(scf.current_percent_difference(asset, bought_price))) * 0.01
     return profit_percent
 
 
@@ -49,3 +50,7 @@ def swing_trade(amount_bought, amount_sold, skim_percent=0):
     next_buy_amount = amount_sold - profit_to_keep
     print(f"next_buy_amount: {next_buy_amount}")
     return next_buy_amount
+
+
+if __name__ == "__main__":
+    pass

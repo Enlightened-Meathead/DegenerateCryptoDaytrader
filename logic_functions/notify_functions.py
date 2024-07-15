@@ -39,3 +39,7 @@ def notify_email(subject, message):
         # Send the email
         server.sendmail(sender_email, recipient_email, msg.as_string())
     print("Email notification sent successfully.")
+
+
+if __name__ == "__main__":
+    pass
