@@ -1,4 +1,5 @@
 # Scans that repeatedly look for the desired outcome and returns the value based on the asset given
+import asyncio
 import time
 import websockets
 import json
@@ -28,8 +29,20 @@ async def connect_websocket():
     return websocket
 
 
-# Asynchronous websocket connection through coinbase that returns the price of the given ticker pair every 5 seconds
-async def current_price_scan(asset, websocket):
+"""
+ Asynchronous websocket based connection through coinbase that returns the price of the given ticker pair every 5 
+ seconds. If you pass a websocket connection, it will keep scanning until the call ends the function, else it will 
+ scan once
+"""
+
+
+async def current_price_scan(asset, websocket=None):
+    # If the program just needs to scan the price once, open the connection within this function
+    one_scan = False
+    if websocket is None:
+        one_scan = True
+        websocket = await connect_websocket()
+    # Subscribe to the websocket for the asset passed by the function call
     price_pair = asset_ticker_pair[asset] + '-USD'
     subscribe_message = json.dumps({
         "type": "subscribe",
@@ -37,6 +50,7 @@ async def current_price_scan(asset, websocket):
         "channels": ["ticker_batch"]
     })
     await websocket.send(subscribe_message)
+    # Return the price until the function that calls this function ends or close after one price grab if one time scan
     while True:
         try:
             response = await websocket.recv()
@@ -45,11 +59,14 @@ async def current_price_scan(asset, websocket):
             if 'type' in json_response and json_response['type'] == 'ticker' and 'price' in json_response:
                 current_price = json_response['price']
                 print("Current price: " + current_price)
+                if one_scan:
+                    await websocket.close()
                 return float(current_price)
         except websockets.exceptions.ConnectionClosed:
-            print("Websocket connection closed unexpectedly. Attempting to reconnect...")
-            websocket = await connect_websocket()
-            await websocket.send(subscribe_message)
+            if not one_scan:
+                print("Websocket connection closed unexpectedly. Attempting to reconnect...")
+                websocket = await connect_websocket()
+                await websocket.send(subscribe_message)
 
 
 # Calculate the difference in percentage from the price bought to the current value of the asset
@@ -241,4 +258,5 @@ async def ladder_sell_scan(asset, bought_price, percent_wanted, percent_loss_lim
 
 
 if __name__ == '__main__':
-    pass
+    asyncio.run(basic_buy_scan("hedera", 0.10))
+    #pass

@@ -3,12 +3,12 @@ from datetime import datetime
 import re
 import click
 import asyncio
+import gnupg
 
 # Local module imports
 import logic_functions.scan_functions as scf
-import logic_functions.notify_functions as nof
+from logic_functions import notify_functions as nof
 import logic_functions.profit_loss_functions as plf
-import logic_functions.logging_functions as lof
 from order_class import Order
 
 menu_banner = """
@@ -554,53 +554,61 @@ def run_program_procedure():
     # reply in a certain amount of time or the user says to cancel and restart the scan
     if order.start_type == 'buy':
         if order.buy_order_type == 'basic_buy':
-            buy_signal = scf.basic_buy_scan(order.asset, order.basic_buy_price,5)
+            buy_signal = asyncio.run(scf.basic_buy_scan(order.asset, order.basic_buy_price))
         elif order.buy_order_type == 'rsi_buy':
             buy_signal = scf.rsi_buy_scan(order.asset, order.rsi_buy_number, order.rsi_drop_limit,
                                           order.rsi_wait_period)
     elif order.start_type == 'sell':
         if order.sell_order_type == 'basic_sell':
-            sell_signal = scf.basic_sell_scan(order.asset, order.asset_bought_price, order.basic_sell_profit,
-                                              order.percent_loss_limit)
+            sell_signal = asyncio.run(
+                scf.basic_sell_scan(order.asset, order.asset_bought_price, order.basic_sell_profit,
+                                    order.percent_loss_limit))
         if order.sell_order_type == 'ladder':
-            sell_signal = scf.ladder_sell_scan(order.asset, order.asset_bought_price, order.minimum_ladder_profit,
-                                               order.percent_loss_limit, order.ladder_step_gain, order.ladder_step_loss,
-                                               order.ladder_timer_duration, order.ladder_step_sensitivity,
-                                               order.ladder_timer_sensitivity)
+            sell_signal = asyncio.run(
+                scf.ladder_sell_scan(order.asset, order.asset_bought_price, order.minimum_ladder_profit,
+                                     order.percent_loss_limit, order.ladder_step_gain, order.ladder_step_loss,
+                                     order.ladder_timer_duration, order.ladder_step_sensitivity,
+                                     order.ladder_timer_sensitivity))
     else:
         print("The program was unable to determine a buy or sell to start the trade. ABORTING!")
         exit()
     # 3. Once a buy or sell signal is true, calculate how much to sell with plrp or tell the user to buy now
     subject = ''
     message = ''
+
     if buy_signal:
         print("Buy signal found!")
         current_price = asyncio.run(scf.current_price_scan(order.asset))
         amount_to_buy = order.initial_capital / order.asset_bought_price
         subject = 'DCDB'
         message = (
-
-            f"Buy {amount_to_buy} {order.asset} at the current price of ${current_price} at "
+            f"Buy {amount_to_buy} {order.asset} for the current price of ${current_price} at "
             f"the time of this email")
     elif sell_signal:
         print("Sell signal found!")
         amount_bought = order.initial_capital / order.asset_bought_price
-        profit_loss = plf.profit_loss_percent(order.asset, order.asset_bought_price)
+        profit_loss = asyncio.run(plf.profit_loss_percent(order.asset, order.asset_bought_price)) * 100
+        print("1: "+str(profit_loss))
         if order.profit_loss_function == 'profit_harvest':
             # add in a user click option if they want a full sell for the profit harvest
-            amount_to_sell = plf.profit_harvest(order.asset_bought_price, amount_bought)
+            amount_to_sell = plf.profit_harvest(order.asset, order.asset_bought_price, amount_bought)
         elif order.profit_loss_function == 'swing_trade':
             current_price = asyncio.run(scf.current_price_scan(order.asset))
+            print("2: " + str(current_price))
             amount_to_sell = order.initial_capital / current_price
             next_buy_amount = plf.swing_trade(amount_bought, amount_to_sell, order.swing_trade_skim)
+            print("3: " + str(next_buy_amount))
         asset_sold_price = asyncio.run(scf.current_price_scan(order.asset))
+        print(f"4: {asset_sold_price}")
         subject = 'DCDS'
         message = (f"Sell {amount_to_sell} from your {amount_bought} {order.asset} according to your "
-                   f"selected {order.profit_loss_function} profit loss function for a current {profit_loss}%")
+                   f"selected {order.profit_loss_function} profit loss function for a current profit/loss of "
+                   f"{profit_loss:.2f}%")
     else:
         print("The buy and sell signal checks ended, but somehow none were set to true. ABORTING!")
 
     # 4. Take the values I want in the message and the put them into an email to notify me
+
     nof.notify_email(subject, message)
 
     '''
@@ -621,9 +629,11 @@ def run_program_procedure():
     # 8. repeat the process with the new numbers
 
 
-
 if __name__ == '__main__':
     try:
+        import gnupg
         main()
+
+        #nof.notify_email('hello', "please encrypt UwU")
     finally:
         print("Bot finished!")

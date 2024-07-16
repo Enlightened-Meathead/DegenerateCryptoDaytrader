@@ -4,8 +4,10 @@ import logic_functions.scan_functions as scf
 
 
 # Little function that return the profit or loss percentage in decimal form, ie 10% == 0.10
-def profit_loss_percent(asset, bought_price):
-    profit_percent = float(asyncio.run(scf.current_percent_difference(asset, bought_price))) * 0.01
+async def profit_loss_percent(asset, bought_price):
+    websocket = await scf.connect_websocket()
+    profit_percent = float(await scf.current_percent_difference(asset, bought_price, websocket)) * 0.01
+    await websocket.close()
     return profit_percent
 
 
@@ -17,10 +19,11 @@ def profit_loss_percent(asset, bought_price):
 """
 
 
-def profit_harvest(bought_price, amount_bought, full_sell=False):
+def profit_harvest(asset, bought_price, amount_bought, full_sell=False):
     # Calculate the profit gained. Multiply that percentage by the current price to calculate profit
     if not full_sell:
-        profit_to_sell = float(amount_bought) * profit_loss_percent(bought_price)
+        profit_loss = asyncio.run(profit_loss_percent(asset, bought_price))
+        profit_to_sell = float(amount_bought) * float(profit_loss)
         # Return the dollar amount to sell
         print(f"Profit_to_sell: {profit_to_sell}")
         return profit_to_sell
@@ -33,7 +36,7 @@ def profit_harvest(bought_price, amount_bought, full_sell=False):
  Swing trading P/LRP: Use the profits from trades to increase capital for buys, this could theoretically maximize
  profits, but also maximizes losses for large dips. If you plan to do this, keep a tax treasury fund as if you swing
  trade massive amounts, even if you lose it all on a dip, you still owe tax on the short term capital gains, or 15% of
- profit I.E. if you trade from $10,000 up to $100k, $9000 profit will likely be taxed at minimum 15%, or $13,500. If
+ profit I.E. if you trade from $10,000 up to $100k, $90,000 profit will likely be taxed at minimum 15%, or $13,500. If
  you end up losing it all because you majorly gamble, and drop back down to $10,000 only, capital loss is only a max of
  $3k per year, and you'd still owe $10.5k even if you don't have the money. Swing trading is risky with large amounts,
  be warned. I am not a financial advisor and this is not financial advice. Just giving you a head up, so you don't
@@ -53,4 +56,7 @@ def swing_trade(amount_bought, amount_sold, skim_percent=0):
 
 
 if __name__ == "__main__":
+    #asyncio.run(profit_loss_percent('hedera', 0.066))
+    swing_trade(100, 250, 5)
+
     pass
