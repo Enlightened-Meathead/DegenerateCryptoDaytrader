@@ -58,7 +58,7 @@ async def current_price_scan(asset, websocket=None):
             # Check if message is a ticker message then parse the price
             if 'type' in json_response and json_response['type'] == 'ticker' and 'price' in json_response:
                 current_price = json_response['price']
-                print("Current price: " + current_price)
+                #print("Current price: " + current_price)
                 if one_scan:
                     await websocket.close()
                 return float(current_price)
@@ -74,7 +74,7 @@ async def current_percent_difference(asset, bought_price, websocket):
     try:
         current_price = await current_price_scan(asset, websocket)
         percent_difference = ((float(current_price) / float(bought_price)) - 1) * 100
-        print(f"Current Percent Difference: {percent_difference}")
+        #print(f"Current Percent Difference: {percent_difference}")
         return percent_difference
     except Exception as e:
         print(f"Error in current_percent_difference: {e}")
@@ -213,7 +213,7 @@ async def ladder_sell_scan(asset, bought_price, percent_wanted, percent_loss_lim
     while not sell_signal:
         # Calculates the potential profit or loss percentage
         percent_changed = await current_percent_difference(asset, bought_price, websocket)
-        print(percent_changed)
+        #print(percent_changed)
 
         # If the percentage profit goes over the percent wanted, begin the ladder
         if percent_changed > percent_wanted and not timer_started:
@@ -247,7 +247,6 @@ async def ladder_sell_scan(asset, bought_price, percent_wanted, percent_loss_lim
                         end_time = time.time() + time_to_seconds(timer_duration / timer_sensitivity_value)
                 # If the negative step value is hit, initiate a sell order
                 elif new_percent_difference < negative_step_gain:
-                    print(new_percent_difference)
                     sell_signal = True
                     print("sold due to negative step gain")
                     return sell_signal

@@ -11,6 +11,14 @@ async def profit_loss_percent(asset, bought_price):
     return profit_percent
 
 
+# If a full sell is not made, calculate the profit or loss relative to the proportion sold and
+def dollar_profit_loss(asset_amount_sold, bought_price, sold_price):
+    sold_portion_cost = bought_price * asset_amount_sold
+    sold_portion_revenue = sold_price * asset_amount_sold
+    profit_loss = sold_portion_revenue - sold_portion_cost
+    return profit_loss
+
+
 """
  Fixed asset buy profit harvesting P/LRP: when a sell is made, any profit kept, and the fixed amount set to trade with
  is used to buy the next position. For example, when you set $100 to trade, if you sell for $105, $5 is kept and $100
@@ -57,6 +65,7 @@ def swing_trade(amount_bought, amount_sold, skim_percent=0):
 
 if __name__ == "__main__":
     #asyncio.run(profit_loss_percent('hedera', 0.066))
-    swing_trade(100, 250, 5)
+    #swing_trade(100, 250, 5)
+    print(dollar_profit_loss(100, 10, 11, ))
 
     pass

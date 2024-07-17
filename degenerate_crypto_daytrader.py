@@ -1,14 +1,15 @@
 # Standard Library
-from datetime import datetime
-import re
-import click
 import asyncio
-import gnupg
+import re
+from datetime import datetime
+
+import click
 
 # Local module imports
-import logic_functions.scan_functions as scf
+from logic_functions import logging_functions as lof
+from logic_functions import profit_loss_functions as plf
+from logic_functions import scan_functions as scf
 from logic_functions import notify_functions as nof
-import logic_functions.profit_loss_functions as plf
 from order_class import Order
 
 menu_banner = """
@@ -50,10 +51,11 @@ OPTION_DEPENDENCIES = {
     'ladder': ['minimum_ladder_profit', 'ladder_step_gain', 'ladder_step_loss', 'ladder_timer_duration',
                'ladder_step_sensitivity', 'ladder_timer_sensitivity'],
     'swing_trade': ['swing_trade_skim'],
-    'sell': ['asset_bought_price']
+    'sell': ['asset_bought_price', 'sell_order_type', 'percent_loss_limit'],
+    'buy': ['buy_order_type'],
 }
-REQUIRED_OPTIONS = ['bot_type', 'asset', 'capital', 'start_type', 'buy_order_type', 'sell_order_type',
-                    'percent_loss_limit', 'profit_loss_function', 'initial_capital']
+REQUIRED_OPTIONS = ['bot_type', 'asset', 'capital', 'start_type', 'basic_sell',
+                    'profit_loss_function', 'initial_capital', 'log_trade']
 
 total_missing_options = []
 menu_assigned_options = {}
@@ -72,6 +74,7 @@ def validate_dependent_options(ctx, param, value):
             # If an option required by the parent option is not present, make it required
             if option not in ctx.params:
                 total_missing_options.append(option)
+                print(total_missing_options)
                 missing_options.append(option)
         # Print out all missing options the user didn't pass on the command line
         if len(missing_options) > 0:
@@ -307,7 +310,7 @@ def repeat_one_liner():
     # Get a timestamp and write the command to the history log file
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     with open('./resources/dcd_command_history.txt', 'a') as history:
-        history.write(f'\n{timestamp} : {current_one_liner}')
+        history.write(f'\n{timestamp} : {current_one_liner}\n')
     history.close()
     # Add in a ring buffer size to the history log file
     # Man page entry for this function
@@ -349,6 +352,14 @@ this file, if you would like to print your previous commands, run this program "
               callback=click_menu,
               default="menu")
 # Currently only email based notify, add exchange based trading and atomic wallet GUI manipulation in the future
+@click.option("--start_type",
+              type=click.Choice(["buy", "sell"]),
+              callback=validate_dependent_options,
+              help="The starting order type")
+@click.option("--sell_order_type",
+              type=click.Choice(["basic_sell", "ladder"]),
+              callback=validate_dependent_options,
+              help="The type of sell order scan type you'd like to  monitor the asset with to alert a sell signal")
 @click.option("--bot_type",
               type=click.Choice(["notify"]),
               help="Specify the type of bot")
@@ -358,31 +369,15 @@ this file, if you would like to print your previous commands, run this program "
 @click.option("--capital",
               type=click.Choice(["dollars", "tether", "usdc", "dai"]),
               help="The type of capital you wish to buy the asset with and sell the asset for")
-@click.option("--start_type",
-              type=click.Choice(["buy", "sell", "previous"]),
-              callback=validate_dependent_options,
-              help="The starting order type")
-@click.option("--buy_order_type",
-              type=click.Choice(["basic_buy", "rsi_buy"]),
-              callback=validate_dependent_options,
-              help="The type of buy order scan type you'd like to monitor the asset with to alert a buy signal")
-@click.option("--sell_order_type",
-              type=click.Choice(["basic_sell", "ladder"]),
-              callback=validate_dependent_options,
-              help="The type of sell order scan type you'd like to  monitor the asset with to alert a sell signal")
-@click.option("--percent_loss_limit",
-              type=check_percentage,
-              help="The percent you will allow your initial buy capital to drop by before selling at a loss. Same "
-                   "thing as a stop loss percentage."
-              )
-@click.option("--profit_loss_function",
-              type=click.Choice(["profit_harvest", "swing_trade"]),
-              callback=validate_dependent_options,
-              help="The profit/loss reallocation protocol determining what to do with profits and losses post sell")
 @click.option("--initial_capital",
               type=check_enough_capital,
-              callback=validate_dependent_options,
-              help="Specify the initial amount of capital you wish to place your buy order"
+              help="Specify the initial amount of capital you wish to place your buy order or the amount you used to "
+                   "buy the asset you now wish to sell"
+              )
+@click.option("--log_trade",
+              type=click.Choice(["excel", "false"]),
+              help="Specify if you want to log trades to an xlslx spreadsheet to the location you specify in the "
+                   "program config file. If 'none' is entered, the trade will not be logged"
               )
 # Additional options that could become required
 # If starting with sell
@@ -392,7 +387,23 @@ this file, if you would like to print your previous commands, run this program "
               help="If starting with a sell order, the price of the asset you bought it for or what its currently at "
                    "that you want to monitor to compare the future price to"
               )
+@click.option("--percent_loss_limit",
+              required=False,
+              type=check_percentage,
+              help="The percent you will allow your initial buy capital to drop by before selling at a loss. Same "
+                   "thing as a stop loss percentage."
+              )
+@click.option("--profit_loss_function",
+              required=False,
+              type=click.Choice(["profit_harvest", "swing_trade"]),
+              callback=validate_dependent_options,
+              help="The profit/loss reallocation protocol determining what to do with profits and losses post sell")
 # If basic buy
+@click.option("--buy_order_type",
+              callback=validate_dependent_options,
+              required=False,
+              type=click.Choice(["basic_buy", "rsi_buy"]),
+              help="The type of buy order scan type you'd like to monitor the asset with to alert a buy signal")
 @click.option("--basic_buy_price",
               required=False,
               type=check_enough_capital,
@@ -498,7 +509,6 @@ def merge_user_inputs(**kwargs):
         # Menu, review page, dependency option checks, and finalize everything into a single dictionary
         finalize_user_inputs()
         repeat_one_liner()
-    #print(f"\n{final_user_options}")
 
 
 '''
@@ -513,7 +523,7 @@ pass the final user options to a class
 
 
 def run_program_procedure():
-    # 1. After gathering and parsing all user input into the Order ob
+    # 1. After gathering and parsing all user input,  create an Order object
     global final_user_options
     order = Order(
         bot_type=final_user_options['bot_type'],
@@ -526,6 +536,7 @@ def run_program_procedure():
         profit_loss_function=final_user_options['profit_loss_function'],
         initial_capital=final_user_options['initial_capital'],
         menu=final_user_options['menu'],
+        log_trade=final_user_options['log_trade'],
         # Click already assigns optional inputs to None, but for clarity I added the .get and None for key errors
         asset_bought_price=final_user_options.get('asset_bought_price', None),
         basic_buy_price=final_user_options.get('basic_buy_price', None),
@@ -543,13 +554,9 @@ def run_program_procedure():
         history=final_user_options.get('history', None)
     )
     print("Gathered all user input. Starting program...")
+
     buy_signal = False
     sell_signal = False
-    amount_to_buy = 0
-    asset_bought_price = 0
-    amount_to_sell = 0
-    amount_to_keep = 0
-    asset_sold_price = 0
     # 2. Based on initial buy or sell scan, begin the scan protocol to buy or sell. Also, rescan if the user doesn't
     # reply in a certain amount of time or the user says to cancel and restart the scan
     if order.start_type == 'buy':
@@ -576,6 +583,14 @@ def run_program_procedure():
     subject = ''
     message = ''
 
+    amount_to_buy = 0
+    amount_bought = 0
+    asset_bought_price = 0
+    amount_to_sell = 0
+    amount_to_keep = 0
+    asset_sold_price = 0
+    profit_loss_percent = 0
+    dollar_profit_loss = 0
     if buy_signal:
         print("Buy signal found!")
         current_price = asyncio.run(scf.current_price_scan(order.asset))
@@ -587,53 +602,50 @@ def run_program_procedure():
     elif sell_signal:
         print("Sell signal found!")
         amount_bought = order.initial_capital / order.asset_bought_price
-        profit_loss = asyncio.run(plf.profit_loss_percent(order.asset, order.asset_bought_price)) * 100
-        print("1: "+str(profit_loss))
+        profit_loss_percent = asyncio.run(plf.profit_loss_percent(order.asset, order.asset_bought_price)) * 100
         if order.profit_loss_function == 'profit_harvest':
             # add in a user click option if they want a full sell for the profit harvest
             amount_to_sell = plf.profit_harvest(order.asset, order.asset_bought_price, amount_bought)
         elif order.profit_loss_function == 'swing_trade':
             current_price = asyncio.run(scf.current_price_scan(order.asset))
-            print("2: " + str(current_price))
             amount_to_sell = order.initial_capital / current_price
             next_buy_amount = plf.swing_trade(amount_bought, amount_to_sell, order.swing_trade_skim)
-            print("3: " + str(next_buy_amount))
         asset_sold_price = asyncio.run(scf.current_price_scan(order.asset))
-        print(f"4: {asset_sold_price}")
+        dollar_profit_loss = plf.dollar_profit_loss(amount_to_sell, order.asset_bought_price, asset_sold_price)
         subject = 'DCDS'
         message = (f"Sell {amount_to_sell} from your {amount_bought} {order.asset} according to your "
                    f"selected {order.profit_loss_function} profit loss function for a current profit/loss of "
-                   f"{profit_loss:.2f}%")
+                   f"{profit_loss_percent:.2f}% for ${dollar_profit_loss:.2f} of gains/losses")
     else:
         print("The buy and sell signal checks ended, but somehow none were set to true. ABORTING!")
-
     # 4. Take the values I want in the message and the put them into an email to notify me
 
-    nof.notify_email(subject, message)
-
+    #nof.notify_email(subject, message)
     '''
     barebones notify version now ready for testing, once this works, add all the stuff below here
     '''
     # 5. Wait for a response for the email, and if told to wait, wait the specified time. Otherwise, log the trade
+
     '''
     if bought or sold:
         log current price
     # 6. If an action was taken, log all the info to a spreadsheet and notify the user it completed successfully
         send all the data to the spreadsheet (different logs if bought or sold)
     '''
-    # 7. Based on the outcome of the previous trade, take the values that would change for the new trade and update them
-    '''
-    '''
-    # in the user options dictionary
-
-    # 8. repeat the process with the new numbers
+    if order.log_trade == 'excel':
+        try:
+            lof.log_trade(datetime.now(), order.start_type, order.asset, order.asset_bought_price, amount_bought,
+                          float(order.asset_bought_price) * float(amount_bought), asset_sold_price, amount_to_sell,
+                          profit_loss_percent, dollar_profit_loss)
+            lof.calculate_totals()
+        except FileNotFoundError:
+            pass
+    else:
+        print('Trade logging skipped...')
 
 
 if __name__ == '__main__':
     try:
-        import gnupg
         main()
-
-        #nof.notify_email('hello', "please encrypt UwU")
     finally:
         print("Bot finished!")
