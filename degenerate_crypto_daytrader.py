@@ -1,8 +1,12 @@
+# # The main program file. The click library has some goofy behavior that requires alot of these functions to be in
+# the same module, so this module is what it is
+
 # Standard Library
 import asyncio
 import re
 from datetime import datetime
 
+# Community library for creating CLI text based applications and parsing arguments and command options
 import click
 
 # Local module imports
@@ -54,8 +58,9 @@ OPTION_DEPENDENCIES = {
     'sell': ['asset_bought_price', 'sell_order_type', 'percent_loss_limit'],
     'buy': ['buy_order_type'],
 }
-REQUIRED_OPTIONS = ['bot_type', 'asset', 'capital', 'start_type', 'basic_sell',
+REQUIRED_OPTIONS = ['bot_type', 'asset', 'capital', 'start_type',
                     'profit_loss_function', 'initial_capital', 'log_trade']
+# add sell_order type and
 
 total_missing_options = []
 menu_assigned_options = {}
@@ -105,52 +110,63 @@ def check_missing_options():
         return True
 
 
-'''- for the menu, for every option, create a prompt with the message being the help message, the click choices the 
+def set_dependency_options(option_dependency, ctx):
+    global menu_assigned_options
+    dependency_option = next(
+        (opt for opt in ctx.command.params if opt.name == option_dependency), None)
+    dependency_user_input = click.prompt(f"{dependency_option.help}",
+                                         type=dependency_option.type)
+    menu_assigned_options[dependency_option.name] = dependency_user_input
+    return dependency_user_input
+
+
+# Recursive function that checks if menu input has dependency then check if that dependency input has dependencies, etc
+def menu_dependency_check(user_input, ctx):
+    global OPTION_DEPENDENCIES
+    if user_input in OPTION_DEPENDENCIES.keys():
+        # For every dependency for the user input option
+        for option_dependency in OPTION_DEPENDENCIES[user_input]:
+            # Check if the dependency was passed at the command line, if not, prompt the user to add it.
+            if option_dependency not in ctx.params.keys():
+                dependency_user_input = set_dependency_options(option_dependency, ctx)
+                menu_dependency_check(dependency_user_input, ctx)
+
+
+'''
+For the menu, for every option, create a prompt with the message being the help message, the click choices the 
 prompt choice, then make the answer to that prompt equal to the parameter value for that parameters name then pass 
 that option to click. If the program is called with menu and some options, start the menu but only for their missing 
 options - say the user is missing some options, and tell them if they dont want this menu pass the argument no menu - 
 check if the passed options require optional dependencies. for every global total missing option, prompt the user to 
-enter them'''
+enter them
+'''
 
 
 # IF YOU ENTER THE MENU OPTION AS THE FIRST OPTION PASSED, NO ARGUMENTS GET PASSED TO CLICK
 # Figure out a way to shrink this function down in the future.
-# Click CLI menu
+# Click CLI menu that parses user input for the required options not passed on the command line
 def click_menu(ctx, param, value):
     global REQUIRED_OPTIONS
-    global OPTION_DEPENDENCIES
     global total_missing_options
     global menu_assigned_options
     make_required(ctx, param, value)
     if value == 'menu':
         click.echo(menu_banner)
         for option in ctx.command.params:
-            # For every option in the click command that hasn't been given a value on the command line and is required:
+            # For every option in the click command that hasn't been given a value yet and is required:
             if option.name not in ctx.params.keys() and option.name in REQUIRED_OPTIONS:
                 user_input = click.prompt(f"{option.help}", type=option.type)
                 # If the user input has associated dependencies
-                if user_input in OPTION_DEPENDENCIES.keys():
-                    # For every dependency for the user input option
-                    for option_dependency in OPTION_DEPENDENCIES[user_input]:
-                        # Check if the dependency was passed at the command line, if not, prompt the user to add it.
-                        if option_dependency not in ctx.params.keys():
-                            dependency_option = next(
-                                (opt for opt in ctx.command.params if opt.name == option_dependency), None)
-                            dependency_user_input = click.prompt(f"{dependency_option.help}",
-                                                                 type=dependency_option.type)
-                            menu_assigned_options[dependency_option.name] = dependency_user_input
+                menu_dependency_check(user_input, ctx)
                 menu_assigned_options[option.name] = user_input
+
         # If any missing options exist from the command line, prompt the user for those as well
         click.echo("The following are required additional options based on some of your options you passed on the "
                    "command line:")
         # For the missing options that weren't passed at the command line with the option that requires them
         for option in total_missing_options:
             # Get the option object that was missing from the command line and prompt the user
-            dependency_option = next(
-                (opt for opt in ctx.command.params if opt.name == option), None)
-            dependency_user_input = click.prompt(f"{dependency_option.help}",
-                                                 type=dependency_option.type)
-            menu_assigned_options[dependency_option.name] = dependency_user_input
+            set_dependency_options(option, ctx)
     return value
 
 
@@ -163,18 +179,36 @@ def integer_or_cancel(user_input):
             return user_input
 
 
+#
+def finalize_dependent_options(changed_option_value):
+    global final_user_options
+    global click_objects_dict
+    global OPTION_DEPENDENCIES
+    dependency_options = OPTION_DEPENDENCIES[changed_option_value]
+    for option in dependency_options:
+        dependency_choice = click_objects_dict[option]
+        changed_option_value = click.prompt(f'Enter new value for {option}', type=dependency_choice)
+        final_user_options[option] = changed_option_value
+        if changed_option_value in OPTION_DEPENDENCIES.keys():
+            finalize_dependent_options(changed_option_value)
+    print(final_user_options)
+
+
 # Could definitely be optimized, but for now its functional
-"""This big kahuna is a user review menu that takes the user inputs from the command line and menu then lets them 
+"""
+This big kahuna is a user review menu that takes the user inputs from the command line and menu then lets them 
 review them and update them. Once the user confirms their final settings, it takes all the user inputs and converts 
 them to a one-liner they can copy paste if they want to run the same trade and stores it into a command history log 
 file for this program. The reason this function is so massive is because I was struggling to pass the click context 
-to multiple functions without issues so here we are for now with this abomination"""
+to multiple functions without issues so here we are for now with this abomination. Future refactor material
+"""
 
 
 def finalize_user_inputs():
     global final_user_options
     global click_objects_dict
     global selected_user_options
+    global OPTION_DEPENDENCIES
     modify_choice_dict = {}
     confirm_choices = 'no'
     # While the user has not confirmed their settings, present them the option to change things
@@ -230,7 +264,6 @@ def finalize_user_inputs():
 
                 # If the choice list is a list, make that the type
                 if isinstance(choice_list, list):
-                    #if type(choice_list) == list:
                     changed_option_value = click.prompt(f'Enter new value for {user_option_change}',
                                                         type=click.Choice(choice_list))
                 else:
@@ -245,6 +278,13 @@ def finalize_user_inputs():
                         dependency_choice = click_objects_dict[option]
                         changed_option_value = click.prompt(f'Enter new value for {option}', type=dependency_choice)
                         final_user_options[option] = changed_option_value
+                        if changed_option_value in OPTION_DEPENDENCIES.keys():
+                            dependency_options = OPTION_DEPENDENCIES[changed_option_value]
+                            for dependency_option in dependency_options:
+                                dependency_choice = click_objects_dict[dependency_option]
+                                changed_option_value = click.prompt(f'Enter new value for {dependency_option}',
+                                                                    type=dependency_choice)
+                                final_user_options[dependency_option] = changed_option_value
 
         # Ask the user again if they want to anything, if no, make them type CONFIRM to start the bot with a prompt
         # that gives them a legal warning
@@ -290,59 +330,113 @@ def check_enough_capital(input_value):
         raise click.BadParameter("Please enter a positive number of the value you wish to buy the trade with")
 
 
-# Print a one-liner that the user can copy and paste the next time they want to run this trade as a one-liner
-def repeat_one_liner():
-    global selected_user_options
-    # Make this a config setting that lets the user save what they have their alias to the log file
-    program_alias = "degenerate_crypto_daytrader"
-    command_option_list = []
-    print("\n===========================\nCurrent Options One-Liner:\n===========================")
-    # Add the --option value strings to a list then join the list
-    for option, value in selected_user_options.items():
-        command_option_list.append(f"--{option} {value}")
-    # Take out the menu choice to be last so the callback function doesn't start the menu before it read the inputs
-    menu_choice = command_option_list.pop()
-    # Reverse the user inputs so click doesn't do a callback if the option dependency was defined after the parent
-    command_option_list.reverse()
-    command_option_string = ' '.join([string for string in command_option_list])
-    current_one_liner = f'python3 {program_alias}.py {command_option_string} {menu_choice}'
-    print(current_one_liner)
-    # Get a timestamp and write the command to the history log file
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    with open('./resources/dcd_command_history.txt', 'a') as history:
-        history.write(f'\n{timestamp} : {current_one_liner}\n')
-    history.close()
-    # Add in a ring buffer size to the history log file
-    # Man page entry for this function
-
-
-# Read the command history log file
-def read_history(ctx, param, value):
-    if value == "view":
-        with open('resources/dcd_command_history.txt', 'r') as history:
-            print(history.read())
-            exit()
-    elif value == "clear":
-        # Open the file with write, which clears the contents of the file
-        with open('./resources/dcd_command_history.txt', 'w') as history:
-            exit()
-
-
 """Here is a one-liner of your settings for this trade; if you wish to make " "this exact trade again," "you can copy 
 this command to save somewhere and/or alias it along with different trades you plan on making " "on a frequent basis. 
 This command will be saved to the 'dcd_command_history.txt' in this programs directory. " "Besides manually reading 
 this file, if you would like to print your previous commands, run this program " "with the --history option."""
 
 
-# Take all the options passed on the command line and assign them to their values. Then, once they are in place,
-# ask the user for each option they did not pass. I will then take that input and make it the value of the option for
-# the entire click command context. Once the entire click command context is entered, validate the options of the
-# options that need additional options, and then prompt the user for those too. Once all options that are required
-# have been entered, list all the options out in a number list and ask for user confirmation. If they say no,
-# then ask which number from the list they would like to modify and give them a prompt to modify it. After that,
-# return to the confirmation menu for the user to confirm. If they confirm, pass the final user options dictionary to
-# the main program and create a timestamped log of the one-liner that would replicate the user input commands they
-# entered for the trade.
+# Pass the final user options to the Order class
+def create_order_object():
+    global final_user_options
+    order = Order(
+        bot_type=final_user_options['bot_type'],
+        asset=final_user_options['asset'],
+        capital=final_user_options['capital'],
+        start_type=final_user_options['start_type'],
+        percent_loss_limit=final_user_options['percent_loss_limit'],
+        profit_loss_function=final_user_options['profit_loss_function'],
+        initial_capital=final_user_options['initial_capital'],
+        menu=final_user_options['menu'],
+        log_trade=final_user_options['log_trade'],
+        # Click already assigns optional inputs to None, but for clarity I added the .get and None for key errors
+        buy_order_type=final_user_options.get('buy_order_type', None),
+        sell_order_type=final_user_options.get('sell_order_type', None),
+        asset_bought_price=final_user_options.get('asset_bought_price', None),
+        basic_buy_price=final_user_options.get('basic_buy_price', None),
+        basic_sell_profit=final_user_options.get('basic_sell_profit', None),
+        swing_trade_skim=final_user_options.get('swing_trade_skim', None),
+        rsi_buy_number=final_user_options.get('rsi_buy_number', None),
+        rsi_drop_limit=final_user_options.get('rsi_drop_limit', None),
+        rsi_wait_period=final_user_options.get('rsi_wait_period', None),
+        minimum_ladder_profit=final_user_options.get('minimum_ladder_profit', None),
+        ladder_step_gain=final_user_options.get('ladder_step_gain', None),
+        ladder_step_loss=final_user_options.get('ladder_step_loss', None),
+        ladder_timer_duration=final_user_options.get('ladder_timer_duration', None),
+        ladder_step_sensitivity=final_user_options.get('ladder_step_sensitivity', None),
+        ladder_timer_sensitivity=final_user_options.get('ladder_timer_sensitivity', None),
+        history=final_user_options.get('history', None)
+    )
+    return order
+
+
+# Scan for the given order object when to buy or sell
+def buy_sell_signal_scan(order):
+    buy_signal = False
+    sell_signal = False
+    # 2. Based on initial buy or sell scan, begin the scan protocol to buy or sell. Also, rescan if the user doesn't
+    # reply in a certain amount of time or the user says to cancel and restart the scan
+    if order.start_type == 'buy':
+        if order.buy_order_type == 'basic_buy':
+            buy_signal = asyncio.run(scf.basic_buy_scan(order.asset, order.basic_buy_price))
+        elif order.buy_order_type == 'rsi_buy':
+            buy_signal = scf.rsi_buy_scan(order.asset, order.rsi_buy_number, order.rsi_drop_limit,
+                                          order.rsi_wait_period)
+        if buy_signal:
+            return 'buy'
+    elif order.start_type == 'sell':
+        if order.sell_order_type == 'basic_sell':
+            sell_signal = asyncio.run(
+                scf.basic_sell_scan(order.asset, order.asset_bought_price, order.basic_sell_profit,
+                                    order.percent_loss_limit))
+        if order.sell_order_type == 'ladder':
+            sell_signal = asyncio.run(
+                scf.ladder_sell_scan(order.asset, order.asset_bought_price, order.minimum_ladder_profit,
+                                     order.percent_loss_limit, order.ladder_step_gain, order.ladder_step_loss,
+                                     order.ladder_timer_duration, order.ladder_step_sensitivity,
+                                     order.ladder_timer_sensitivity))
+        if sell_signal:
+            return 'sell'
+    else:
+        print("The program was unable to determine a buy or sell to start the trade. ABORTING!")
+        exit()
+
+
+# Take the click command arguments passed at the command line and combine them with the menu assigned options
+def merge_user_inputs(**kwargs):
+    global menu_assigned_options
+    global final_user_options
+    global click_objects_dict
+    global selected_user_options
+
+    # Take every click option and make into a dictionary to be referenced for outside the scope of the click
+    # command options that normally are only accessible directly read from the initial command line input
+    ctx = click.get_current_context()
+    for param in ctx.command.params:
+        click_objects_dict[param.name] = param.type
+
+    # If the user did not specify no_menu in the case of a one-liner, then give them a menu for any missing options
+    # and to have them review and confirm their settings
+
+    # Merge the click command line options with the menu options overwriting the click options
+    final_user_options = kwargs | menu_assigned_options
+    if ctx.params['menu'] == 'menu':
+        # Menu, review page, dependency option checks, and finalize everything into a single dictionary
+        finalize_user_inputs()
+        lof.repeat_one_liner(selected_user_options)
+
+
+'''
+Take all the options passed on the command line and assign them to their values. Then, once they are in place,
+ask the user for each option they did not pass. I will then take that input and make it the value of the option for
+the entire click command context. Once the entire click command context is entered, validate the options of the
+options that need additional options, and then prompt the user for those too. Once all options that are required
+have been entered, list all the options out in a number list and ask for user confirmation. If they say no,
+then ask which number from the list they would like to modify and give them a prompt to modify it. After that,
+return to the confirmation menu for the user to confirm. If they confirm, pass the final user options dictionary to
+the main program and create a timestamped log of the one-liner that would replicate the user input commands they
+entered for the trade.
+'''
 
 
 @click.command()
@@ -352,14 +446,6 @@ this file, if you would like to print your previous commands, run this program "
               callback=click_menu,
               default="menu")
 # Currently only email based notify, add exchange based trading and atomic wallet GUI manipulation in the future
-@click.option("--start_type",
-              type=click.Choice(["buy", "sell"]),
-              callback=validate_dependent_options,
-              help="The starting order type")
-@click.option("--sell_order_type",
-              type=click.Choice(["basic_sell", "ladder"]),
-              callback=validate_dependent_options,
-              help="The type of sell order scan type you'd like to  monitor the asset with to alert a sell signal")
 @click.option("--bot_type",
               type=click.Choice(["notify"]),
               help="Specify the type of bot")
@@ -374,13 +460,22 @@ this file, if you would like to print your previous commands, run this program "
               help="Specify the initial amount of capital you wish to place your buy order or the amount you used to "
                    "buy the asset you now wish to sell"
               )
+@click.option("--start_type",
+              type=click.Choice(["buy", "sell"]),
+              callback=validate_dependent_options,
+              help="The starting order type")
 @click.option("--log_trade",
               type=click.Choice(["excel", "false"]),
               help="Specify if you want to log trades to an xlslx spreadsheet to the location you specify in the "
-                   "program config file. If 'none' is entered, the trade will not be logged"
+                   "program config file. If 'false' is entered, the trade will not be logged"
               )
 # Additional options that could become required
 # If starting with sell
+@click.option("--sell_order_type",
+              required=False,
+              type=click.Choice(["basic_sell", "ladder"]),
+              callback=validate_dependent_options,
+              help="The type of sell order scan type you'd like to  monitor the asset with to alert a sell signal")
 @click.option("--asset_bought_price",
               required=False,
               type=float,
@@ -398,12 +493,13 @@ this file, if you would like to print your previous commands, run this program "
               type=click.Choice(["profit_harvest", "swing_trade"]),
               callback=validate_dependent_options,
               help="The profit/loss reallocation protocol determining what to do with profits and losses post sell")
-# If basic buy
+# If starting with buy
 @click.option("--buy_order_type",
               callback=validate_dependent_options,
               required=False,
               type=click.Choice(["basic_buy", "rsi_buy"]),
               help="The type of buy order scan type you'd like to monitor the asset with to alert a buy signal")
+# If basic buy
 @click.option("--basic_buy_price",
               required=False,
               type=check_enough_capital,
@@ -474,7 +570,7 @@ this file, if you would like to print your previous commands, run this program "
 @click.option("--history",
               required=False,
               type=click.Choice(["view", "clear"]),
-              callback=read_history,
+              callback=lof.read_history,
               help="Prints the content of your command history for this program to the terminal.")
 def main(**kwargs):
     merge_user_inputs(**kwargs)
@@ -488,98 +584,19 @@ def main(**kwargs):
  required for the program
 """
 
-
-def merge_user_inputs(**kwargs):
-    global menu_assigned_options
-    global final_user_options
-    global click_objects_dict
-
-    # Take every click option and make into a dictionary to be referenced for outside the scope of the click
-    # command options that normally are only accessible directly read from the initial command line input
-    ctx = click.get_current_context()
-    for param in ctx.command.params:
-        click_objects_dict[param.name] = param.type
-
-    # If the user did not specify no_menu in the case of a one-liner, then give them a menu for any missing options
-    # and to have them review and confirm their settings
-
-    # Merge the click command line options with the menu options overwriting the click options
-    final_user_options = kwargs | menu_assigned_options
-    if ctx.params['menu'] == 'menu':
-        # Menu, review page, dependency option checks, and finalize everything into a single dictionary
-        finalize_user_inputs()
-        repeat_one_liner()
-
-
-'''
- This file is way too long as it is, but after writing all this I learned it would be pretty difficult to run click
- in a different file and pass the final user options to the file, so I'm just writing it in here for now to get it
- WORKING and if I have time in the future to nitpick and divide this file up, I will do a refactor when I'm more skilled
-'''
-
-'''
-pass the final user options to a class
-'''
-
-
+# After the user inputs have been merged, run the program step by step calling the necessary functions
 def run_program_procedure():
     # 1. After gathering and parsing all user input,  create an Order object
-    global final_user_options
-    order = Order(
-        bot_type=final_user_options['bot_type'],
-        asset=final_user_options['asset'],
-        capital=final_user_options['capital'],
-        start_type=final_user_options['start_type'],
-        buy_order_type=final_user_options['buy_order_type'],
-        sell_order_type=final_user_options['sell_order_type'],
-        percent_loss_limit=final_user_options['percent_loss_limit'],
-        profit_loss_function=final_user_options['profit_loss_function'],
-        initial_capital=final_user_options['initial_capital'],
-        menu=final_user_options['menu'],
-        log_trade=final_user_options['log_trade'],
-        # Click already assigns optional inputs to None, but for clarity I added the .get and None for key errors
-        asset_bought_price=final_user_options.get('asset_bought_price', None),
-        basic_buy_price=final_user_options.get('basic_buy_price', None),
-        basic_sell_profit=final_user_options.get('basic_sell_profit', None),
-        swing_trade_skim=final_user_options.get('swing_trade_skim', None),
-        rsi_buy_number=final_user_options.get('rsi_buy_number', None),
-        rsi_drop_limit=final_user_options.get('rsi_drop_limit', None),
-        rsi_wait_period=final_user_options.get('rsi_wait_period', None),
-        minimum_ladder_profit=final_user_options.get('minimum_ladder_profit', None),
-        ladder_step_gain=final_user_options.get('ladder_step_gain', None),
-        ladder_step_loss=final_user_options.get('ladder_step_loss', None),
-        ladder_timer_duration=final_user_options.get('ladder_timer_duration', None),
-        ladder_step_sensitivity=final_user_options.get('ladder_step_sensitivity', None),
-        ladder_timer_sensitivity=final_user_options.get('ladder_timer_sensitivity', None),
-        history=final_user_options.get('history', None)
-    )
-    print("Gathered all user input. Starting program...")
-
-    buy_signal = False
-    sell_signal = False
+    order = create_order_object()
+    print("\n============================================"
+          "\nGathered all user input. Starting program..."
+          "\n============================================")
     # 2. Based on initial buy or sell scan, begin the scan protocol to buy or sell. Also, rescan if the user doesn't
     # reply in a certain amount of time or the user says to cancel and restart the scan
-    if order.start_type == 'buy':
-        if order.buy_order_type == 'basic_buy':
-            buy_signal = asyncio.run(scf.basic_buy_scan(order.asset, order.basic_buy_price))
-        elif order.buy_order_type == 'rsi_buy':
-            buy_signal = scf.rsi_buy_scan(order.asset, order.rsi_buy_number, order.rsi_drop_limit,
-                                          order.rsi_wait_period)
-    elif order.start_type == 'sell':
-        if order.sell_order_type == 'basic_sell':
-            sell_signal = asyncio.run(
-                scf.basic_sell_scan(order.asset, order.asset_bought_price, order.basic_sell_profit,
-                                    order.percent_loss_limit))
-        if order.sell_order_type == 'ladder':
-            sell_signal = asyncio.run(
-                scf.ladder_sell_scan(order.asset, order.asset_bought_price, order.minimum_ladder_profit,
-                                     order.percent_loss_limit, order.ladder_step_gain, order.ladder_step_loss,
-                                     order.ladder_timer_duration, order.ladder_step_sensitivity,
-                                     order.ladder_timer_sensitivity))
-    else:
-        print("The program was unable to determine a buy or sell to start the trade. ABORTING!")
-        exit()
-    # 3. Once a buy or sell signal is true, calculate how much to sell with plrp or tell the user to buy now
+    signal = buy_sell_signal_scan(order)
+
+    # 3. Once a signal is true, calculate how much to sell with profit/loss function or tell the user to buy now
+    # and use that information to craft a message for the email notification
     subject = ''
     message = ''
 
@@ -591,7 +608,7 @@ def run_program_procedure():
     asset_sold_price = 0
     profit_loss_percent = 0
     dollar_profit_loss = 0
-    if buy_signal:
+    if signal == 'buy':
         print("Buy signal found!")
         current_price = asyncio.run(scf.current_price_scan(order.asset))
         amount_to_buy = order.initial_capital / order.asset_bought_price
@@ -599,7 +616,7 @@ def run_program_procedure():
         message = (
             f"Buy {amount_to_buy} {order.asset} for the current price of ${current_price} at "
             f"the time of this email")
-    elif sell_signal:
+    elif signal == 'sell':
         print("Sell signal found!")
         amount_bought = order.initial_capital / order.asset_bought_price
         profit_loss_percent = asyncio.run(plf.profit_loss_percent(order.asset, order.asset_bought_price)) * 100
@@ -619,19 +636,16 @@ def run_program_procedure():
     else:
         print("The buy and sell signal checks ended, but somehow none were set to true. ABORTING!")
     # 4. Take the values I want in the message and the put them into an email to notify me
-
     #nof.notify_email(subject, message)
-    '''
-    barebones notify version now ready for testing, once this works, add all the stuff below here
-    '''
+
     # 5. Wait for a response for the email, and if told to wait, wait the specified time. Otherwise, log the trade
 
     '''
     if bought or sold:
         log current price
-    # 6. If an action was taken, log all the info to a spreadsheet and notify the user it completed successfully
-        send all the data to the spreadsheet (different logs if bought or sold)
     '''
+    # 6. If an action was taken, log all the info to a spreadsheet and notify the user it completed successfully
+    # send all the data to the spreadsheet (different logs if bought or sold)
     if order.log_trade == 'excel':
         try:
             lof.log_trade(datetime.now(), order.start_type, order.asset, order.asset_bought_price, amount_bought,
@@ -648,4 +662,4 @@ if __name__ == '__main__':
     try:
         main()
     finally:
-        print("Bot finished!")
+        print("\n~~~Bot finished!~~~")

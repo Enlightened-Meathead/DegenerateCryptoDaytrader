@@ -1,6 +1,7 @@
-# Functions that take information from buy and sell orders then log it to a spreadsheet
+## Functions that take information from buy and sell orders then log it to a spreadsheet
 from openpyxl import Workbook, load_workbook
 from resources import creds
+from datetime import datetime
 
 workbook_file_path = creds.trade_log_path
 
@@ -84,6 +85,45 @@ def log_trade(*args):
         print(f"Order appended to {workbook_file_path}")
     except Exception as e:
         print(f"Error in log_trade trying to save to workbook: {e}")
+
+
+# Print a one-liner that the user can copy and paste the next time they want to run this trade as a one-liner
+def repeat_one_liner(selected_user_options):
+    # Make this a config setting that lets the user save what they have their alias to the log file
+    program_alias = "degenerate_crypto_daytrader"
+    command_option_list = []
+    print("\n===========================\nCurrent options one-liner:\n===========================")
+    # Add the --option value strings to a list then join the list
+    for option, value in selected_user_options.items():
+        command_option_list.append(f"--{option} {value}")
+    # Take out the menu choice to be last so the callback function doesn't start the menu before it read the inputs
+    menu_choice = command_option_list.pop()
+    # Reverse the user inputs so click doesn't do a callback if the option dependency was defined after the parent
+    command_option_list.reverse()
+    command_option_string = ' '.join([string for string in command_option_list])
+    current_one_liner = f'python3 {program_alias}.py {command_option_string} {menu_choice}'
+    print(current_one_liner)
+    # Get a timestamp and write the command to the history log file
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    with open('./resources/dcd_command_history.txt', 'a') as history:
+        history.write(f'\n{timestamp} : {current_one_liner}\n')
+    history.close()
+    # Add in a ring buffer size to the history log file
+    # Man page entry for this function
+
+
+# Read the command history log file
+def read_history(ctx, param, value):
+    if value == "view":
+        with open('resources/dcd_command_history.txt', 'r') as history:
+            print(history.read())
+            history.close()
+            exit()
+    elif value == "clear":
+        # Open the file with write, which clears the contents of the file
+        with open('./resources/dcd_command_history.txt', 'w') as history:
+            history.close()
+            exit()
 
 
 if __name__ == "__main__":
