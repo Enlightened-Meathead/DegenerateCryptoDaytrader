@@ -60,7 +60,6 @@ OPTION_DEPENDENCIES = {
 }
 REQUIRED_OPTIONS = ['bot_type', 'asset', 'capital', 'start_type',
                     'profit_loss_function', 'initial_capital', 'log_trade']
-# add sell_order type and
 
 total_missing_options = []
 menu_assigned_options = {}
@@ -583,6 +582,7 @@ def main(**kwargs):
  function takes the click options and command line values pass to click and then passes it to the two functions 
  required for the program
 """
+
 
 # After the user inputs have been merged, run the program step by step calling the necessary functions
 def run_program_procedure():

@@ -1,7 +1,12 @@
 # Module for notifying the user when a or buy or sell scan has triggered a signal.
 import smtplib
+import imaplib
+import email
+import time
+
 import gnupg
 from email.mime.text import MIMEText
+from email.header import decode_header
 from resources import creds
 
 
@@ -42,8 +47,8 @@ def notify_email(subject, message, public_key=None):
     # SMTP server settings
     smtp_server = "smtp.gmail.com"
     smtp_port = 587
-    smtp_username = creds.smtp_username
-    smtp_password = creds.smtp_password
+    smtp_username = creds.sender_email
+    smtp_password = creds.sender_password
 
     # Establish a connection to the SMTP server
     with smtplib.SMTP(smtp_server, smtp_port) as server:
@@ -56,6 +61,44 @@ def notify_email(subject, message, public_key=None):
     print("Email notification sent successfully.")
 
 
+def check_email_response(timeout=creds.email_check_timeout, check_interval=creds.email_check_interval):
+    email_to_check = creds.sender_email
+    password = creds.sender_password
+    search_subject = creds.email_subject_check
+    end_time = time.time() + timeout
+    try:
+        while time.time() < end_time:
+            with imaplib.IMAP4_SSL('imap.gmail.com') as mail:
+                mail.login(email_to_check, password)
+                mail.select('inbox')
+                # Check for unseen emails and return the status if the command was successful
+                status, messages = mail.search(None, 'UNSEEN')
+                for message_ID in messages[0].split():
+                    print(f"searching message: {message_ID}")
+                    status, msg_data = mail.fetch(message_ID, '(RFC822)')
+                    for response_part in msg_data:
+                        if isinstance(response_part, tuple):
+                            message = email.message_from_bytes(response_part[1])
+                            print(message)
+                            subject = decode_header(message['Subject'])[0][0]
+                            print(subject)
+                            if isinstance(subject, bytes):
+                                subject = subject.decode()
+                            if search_subject in subject:
+                                if message.is_multipart():
+                                    for part in message.get_payload():
+                                        if part.get_content_type() == "text/plain":
+                                            body = part.get_payload(decode=True).decode()
+                                else:
+                                    body = message.get_payload(decode=True).decode()
+                                print(f"Recieved email back containing: {body}")
+                                return body
+            time.sleep(check_interval)
+    except Exception as e:
+        print(f"Email function for waiting for response error: {e}")
+
+
 if __name__ == "__main__":
-    notify_email('dcdt', f"test not encrypt new")
+    #notify_email('dcdt', f"test not encrypt new")
+    check_email_response(20, 10)
     pass
