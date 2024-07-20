@@ -586,28 +586,33 @@ def main(**kwargs):
 
 # After the user inputs have been merged, run the program step by step calling the necessary functions
 def run_program_procedure():
-    # 1. After gathering and parsing all user input,  create an Order object
+    """
+    Run the main order monitoring procedure step by step based on the order input
+    :return:
+    """
+    """
+    1. After gathering and parsing all user input,  create an Order object
+    """
     order = create_order_object()
     print("\n============================================"
           "\nGathered all user input. Starting program..."
           "\n============================================")
-    # 2. Based on initial buy or sell scan, begin the scan protocol to buy or sell. Also, rescan if the user doesn't
-    # reply in a certain amount of time or the user says to cancel and restart the scan
+    """
+    2. Based on initial buy or sell scan, begin the scan protocol to buy or sell. Also, rescan if the user doesn't
+    reply in a certain amount of time or the user says to cancel and restart the scan
+    """
     signal = buy_sell_signal_scan(order)
 
-    # 3. Once a signal is true, calculate how much to sell with profit/loss function or tell the user to buy now
-    # and use that information to craft a message for the email notification
+    """
+    3. Once a signal is true, calculate how much to sell with profit/loss function or tell the user to buy now
+    and use that information to craft a message for the email notification
+    """
     subject = ''
     message = ''
 
-    amount_to_buy = 0
-    amount_bought = 0
-    asset_bought_price = 0
     amount_to_sell = 0
-    amount_to_keep = 0
-    asset_sold_price = 0
+    amount_bought = 0
     profit_loss_percent = 0
-    dollar_profit_loss = 0
     if signal == 'buy':
         print("Buy signal found!")
         current_price = asyncio.run(scf.current_price_scan(order.asset))
@@ -628,34 +633,53 @@ def run_program_procedure():
             amount_to_sell = order.initial_capital / current_price
             next_buy_amount = plf.swing_trade(amount_bought, amount_to_sell, order.swing_trade_skim)
         asset_sold_price = asyncio.run(scf.current_price_scan(order.asset))
-        dollar_profit_loss = plf.dollar_profit_loss(amount_to_sell, order.asset_bought_price, asset_sold_price)
+        dollar_profit_loss = plf.dollar_profit_loss(order.asset_bought_price, asset_sold_price, amount_to_sell)
         subject = 'DCDS'
         message = (f"Sell {amount_to_sell} from your {amount_bought} {order.asset} according to your "
                    f"selected {order.profit_loss_function} profit loss function for a current profit/loss of "
                    f"{profit_loss_percent:.2f}% for ${dollar_profit_loss:.2f} of gains/losses")
     else:
         print("The buy and sell signal checks ended, but somehow none were set to true. ABORTING!")
-    # 4. Take the values I want in the message and the put them into an email to notify me
-    #nof.notify_email(subject, message)
+    """
+    4. Take the values I want in the message and the put them into an email to notify me
+    """
+    nof.notify_email(subject, message)
 
-    # 5. Wait for a response for the email, and if told to wait, wait the specified time. Otherwise, log the trade
+    """
+    5. Wait for a response for the email, and if told to wait, wait the specified time. Otherwise, log the trade.
+    Will keep checking until the timeout, which the timeout is set in the config file
+    """
+    email_response = nof.check_email_response()
 
-    '''
-    if bought or sold:
-        log current price
-    '''
-    # 6. If an action was taken, log all the info to a spreadsheet and notify the user it completed successfully
-    # send all the data to the spreadsheet (different logs if bought or sold)
-    if order.log_trade == 'excel':
-        try:
-            lof.log_trade(datetime.now(), order.start_type, order.asset, order.asset_bought_price, amount_bought,
-                          float(order.asset_bought_price) * float(amount_bought), asset_sold_price, amount_to_sell,
-                          profit_loss_percent, dollar_profit_loss)
-            lof.calculate_totals()
-        except FileNotFoundError:
-            pass
-    else:
-        print('Trade logging skipped...')
+    """
+    6. If an action was taken, log all the info to a spreadsheet and notify the user it completed successfully send
+    all the data to the spreadsheet (different logs if bought or sold). otherwise, if the time expired and the 
+    email response was none, restart the current order monitoring function
+    """
+    email_response_dict = nof.email_reply_parser(email_response)
+    print(email_response_dict)
+    asset_amount_sold, asset_sold_total = nof.email_value_assigner(email_response_dict)
+    print(asset_amount_sold)
+    print(asset_sold_total)
+    if email_response is None:
+        print("No email response!")
+    elif email_response:
+        if order.log_trade == 'excel':
+            # I need to get the asset sold total and the asset amount sold from the user to correctly log it to the
+            # spreadsheet, the user replied asset sold total should include fees already, so that's the real returned
+            # value
+            asset_sold_price = asyncio.run(scf.current_price_scan(order.asset))
+            dollar_profit_loss = plf.dollar_profit_loss(asset_amount_sold, asset_sold_total, order.asset_bought_price,
+                                                        asset_sold_price)
+            try:
+                lof.log_trade(datetime.now(), order.start_type, order.asset, order.asset_bought_price, amount_bought,
+                              float(order.asset_bought_price) * float(amount_bought), asset_sold_price,
+                              asset_amount_sold, asset_sold_total, profit_loss_percent, dollar_profit_loss)
+                lof.calculate_totals()
+            except FileNotFoundError:
+                pass
+        else:
+            print('Trade logging skipped...')
 
 
 if __name__ == '__main__':

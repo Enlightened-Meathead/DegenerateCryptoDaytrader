@@ -11,8 +11,8 @@ def create_initial_workbook():
     workbook = Workbook()
     sheet = workbook.active
     headers = ["Order Number", "Date and Time", "Order Type", "Asset", "Bought Price", "Asset Amount Bought",
-               "$ Amount Bought", "Sold Price", "Amount of Asset Sold", "Profit/Loss %", "Profit/Loss $ Amount",
-               "$ Total Losses", "$ Total Profits", "$ Total Net"]
+               "$ Amount Bought", "Sold Price", "Amount of Asset Sold", "$ Amount Sold", "Profit/Loss %",
+               "Profit/Loss $ Amount", "$ Total Losses", "$ Total Profits", "$ Total Net"]
     sheet.append(headers)
     workbook.save(workbook_file_path)
 
@@ -25,7 +25,7 @@ def calculate_totals():
     total_profits = 0
 
     # Get the profit or loss of each row and calculate the total losses, total profits, and net
-    for row in sheet.iter_rows(min_row=2, max_row=sheet.max_row, min_col=11, max_col=11, values_only=True):
+    for row in sheet.iter_rows(min_row=2, max_row=sheet.max_row, min_col=12, max_col=12, values_only=True):
         try:
             profit_loss = row[0]
             if profit_loss < 0:
@@ -37,9 +37,9 @@ def calculate_totals():
     total_net = total_profits + total_losses
 
     # Write the totals in the last three columns
-    sheet.cell(row=2, column=12, value=round(total_losses, 2))
-    sheet.cell(row=2, column=13, value=round(total_profits, 2))
-    sheet.cell(row=2, column=14, value=round(total_net, 2))
+    sheet.cell(row=2, column=13, value=round(total_losses, 2))
+    sheet.cell(row=2, column=14, value=round(total_profits, 2))
+    sheet.cell(row=2, column=15, value=round(total_net, 2))
 
     try:
         workbook.save(workbook_file_path)
@@ -127,6 +127,6 @@ def read_history(ctx, param, value):
 
 
 if __name__ == "__main__":
-    #create_initial_workbook()
+    create_initial_workbook()
     calculate_totals()
     pass

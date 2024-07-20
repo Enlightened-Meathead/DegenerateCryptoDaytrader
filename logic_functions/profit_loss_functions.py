@@ -12,10 +12,13 @@ async def profit_loss_percent(asset, bought_price):
 
 
 # If a full sell is not made, calculate the profit or loss relative to the proportion sold and
-def dollar_profit_loss(asset_amount_sold, bought_price, sold_price):
+def dollar_profit_loss(bought_price, sold_price, asset_amount_sold, asset_sold_total=0):
     sold_portion_cost = bought_price * asset_amount_sold
     sold_portion_revenue = sold_price * asset_amount_sold
-    profit_loss = sold_portion_revenue - sold_portion_cost
+    fees = 0
+    if asset_sold_total != 0:
+        fees = sold_portion_revenue - asset_sold_total
+    profit_loss = sold_portion_revenue - sold_portion_cost - fees
     return profit_loss
 
 
@@ -66,6 +69,6 @@ def swing_trade(amount_bought, amount_sold, skim_percent=0):
 if __name__ == "__main__":
     #asyncio.run(profit_loss_percent('hedera', 0.066))
     #swing_trade(100, 250, 5)
-    print(dollar_profit_loss(100, 10, 11, ))
+    print(dollar_profit_loss(100,  1180, 11, 12))
 
     pass
