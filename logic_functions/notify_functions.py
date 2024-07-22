@@ -3,6 +3,7 @@ import smtplib
 import imaplib
 import email
 import time
+import re
 
 import gnupg
 from email.mime.text import MIMEText
@@ -28,7 +29,8 @@ def notify_email(subject, message, public_key=None):
               f"\n>>> pub = creds.public_key"
               f"\n>>> pub = gpg.import_keys(pub)"
               f"\n>>> fin = pub.fingerprints[0]"
-              f"\n>>> gpg.trust_keys(fin, 'TRUST_ULTIMATE') ")
+              f"\n>>> gpg.trust_keys(fin, 'TRUST_ULTIMATE') "
+              f"\n ONLY do this with a key that is made only for this program and NOTHING ELSE!")
 
     # Create and encrypt the email message if gpg key is provided
     if public_key is not None:
@@ -60,13 +62,14 @@ def notify_email(subject, message, public_key=None):
         server.sendmail(creds.sender_email, creds.recipient_email, msg.as_string())
     print("Email notification sent successfully.")
 
+
 # Recursively check the email if it is multipart for plain text section that is the body
 def get_plain_text_body(message):
     # If the message is multipart, iterate over the parts
     if message.is_multipart():
         for part in message.get_payload():
             content_type = part.get_content_type()
-            print(f"Part content type: {content_type}")  # Log content type of each part
+            #print(f"Part content type: {content_type}")
             # Recursively check each part for plain text
             result = get_plain_text_body(part)
             if result:
@@ -74,7 +77,7 @@ def get_plain_text_body(message):
     else:
         # If the message is not multipart, check if it is plain text
         content_type = message.get_content_type()
-        print(f"Message content type: {content_type}")  # Log content type of the message
+        #print(f"Message content type: {content_type}")
         if content_type == "text/plain":
             # Decode the body from bytes and return the text value
             return message.get_payload(decode=True).decode()
@@ -97,7 +100,6 @@ def check_email_response(timeout=creds.email_check_timeout, check_interval=creds
             status, messages = mail.search(None, 'UNSEEN')
             # Iterate through all unseen messages
             for message_ID in messages[0].split():
-                print(f"searching message: {message_ID}")
                 status, msg_data = mail.fetch(message_ID, '(RFC822)')
                 for response_part in msg_data:
                     # Make sure you get the tuple of the header and the content for that header
@@ -113,7 +115,6 @@ def check_email_response(timeout=creds.email_check_timeout, check_interval=creds
                         if search_subject in subject:
                             body = get_plain_text_body(message)
                             if body:
-                                print(f"Received email back containing: {body}")
                                 return body
                             else:
                                 print("No plain text body found in the email.")
@@ -129,39 +130,53 @@ def email_reply_parser(email_response):
     # and the asset amount sold
     try:
         email_str = str(email_response)
+        # Each command in the email should be seperated by a comma
         email_values = email_str.split(',')
         email_values_dict = {}
         email_response_dict = {}
         for value in email_values:
-            key, value = value.split(':')
+            # Split the command into the key value pair using only the first colon
+            key, value = value.split(':', 1)
             email_values_dict[key.strip()] = value.strip()
         for key, value in creds.email_response_keys.items():
             if key in email_values_dict.keys():
                 variable_key_name = creds.email_response_keys[key]
                 email_response_dict[variable_key_name] = email_values_dict[key]
-        print(email_response_dict)
         return email_response_dict
     except Exception as e:
-        print(f"Unable to convert email response to key value pairs: {e}")
+        print(f"Unable to convert email response to key value pairs in email_reply_parser: {e}")
 
 
 def email_value_assigner(email_response_dict):
-    global asset_amount_sold, asset_sold_total
-    try:
-        if 'asset_sold_total' in email_response_dict.keys():
-            asset_sold_total = float(email_response_dict['asset_sold_total'])
-            print(f'asset sold for: {asset_sold_total}')
-        if 'asset_amount_sold' in email_response_dict.keys():
-            asset_amount_sold = float(email_response_dict['asset_amount_sold'])
-            print(f'asset amount sold: {asset_amount_sold}')
-        return asset_amount_sold, asset_sold_total
-    except Exception as e:
-        print(f'Unable to convert email values to variables needed for logging function in email_value_assigner: {e}')
+    email_response_search_patterns = [r'[\d.]+', r'\d{2}:\d{2}:\d{2}']
+    print("User values/commands found in email:")
+    for search_key in creds.email_response_keys.values():
+        if search_key in email_response_dict.keys():
+            for pattern in email_response_search_patterns:
+                searched_string = re.search(pattern, email_response_dict[search_key])
+                # if the search key is bot time to wait and the pattern is the first one searching for only floats,
+                # skip it
+                if searched_string:
+                    if search_key == 'bot_time_to_wait' and pattern == email_response_search_patterns[1]:
+                        found_match = searched_string.group()
+                        print(f'{search_key}: {found_match}')
+                        email_response_dict[search_key] = found_match
+                    # Yeah, I repeated myself once instead of making a three line function that requires 3 arguments and
+                    # have to assign that return value anyway.
+                    elif search_key != 'bot_time_to_wait':
+                        found_match = searched_string.group()
+                        print(f'{search_key}: {found_match}')
+                        email_response_dict[search_key] = found_match
+    return email_response_dict
 
 
 if __name__ == "__main__":
     #notify_email('dcdt', f"test not encrypt new")
-    #check_email_response(20, 10)
-    email_response = email_reply_parser('a:100.27,t:82')
-    email_value_assigner(email_response)
+    email_response = check_email_response(20, 10)
+    dict = email_reply_parser(email_response)
+    print(dict)
+    m = email_value_assigner(dict)
+    print(f'final: {m}')
+
+    #email_value_assigner(email_response)
     pass

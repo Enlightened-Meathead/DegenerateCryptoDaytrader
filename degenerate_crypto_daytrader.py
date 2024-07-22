@@ -4,6 +4,7 @@
 # Standard Library
 import asyncio
 import re
+import time
 from datetime import datetime
 
 # Community library for creating CLI text based applications and parsing arguments and command options
@@ -400,6 +401,27 @@ def buy_sell_signal_scan(order):
         print("The program was unable to determine a buy or sell to start the trade. ABORTING!")
         exit()
 
+# Create email message if buy scan is found
+def buy_signal_email(order):
+    print("Buy signal found!")
+    current_price = asyncio.run(scf.current_price_scan(order.asset))
+    amount_to_buy = order.initial_capital / order.asset_bought_price
+    subject = 'DCDB'
+    message = (
+        f"Buy {amount_to_buy} {order.asset} for the current price of ${current_price} at "
+        f"the time of this email")
+
+
+# Check if the user tells the program to wait, then if so restart the scan after the wait time
+def check_if_wait(email_response_dict):
+    if 'bot_time_to_wait' in email_response_dict.keys():
+        wait_time = email_response_dict['bot_time_to_wait']
+        print(f"Told to wait {wait_time}!")
+        wait_time_seconds = scf.time_to_seconds(wait_time)
+        time.sleep(wait_time_seconds)
+        print("Restarting program after user wait period time expired...")
+        run_program_procedure()
+
 
 # Take the click command arguments passed at the command line and combine them with the menu assigned options
 def merge_user_inputs(**kwargs):
@@ -573,6 +595,9 @@ entered for the trade.
               help="Prints the content of your command history for this program to the terminal.")
 def main(**kwargs):
     merge_user_inputs(**kwargs)
+    print("\n============================================"
+          "\nGathered all user input. Starting program..."
+          "\n============================================")
     run_program_procedure()
 
 
@@ -594,9 +619,6 @@ def run_program_procedure():
     1. After gathering and parsing all user input,  create an Order object
     """
     order = create_order_object()
-    print("\n============================================"
-          "\nGathered all user input. Starting program..."
-          "\n============================================")
     """
     2. Based on initial buy or sell scan, begin the scan protocol to buy or sell. Also, rescan if the user doesn't
     reply in a certain amount of time or the user says to cancel and restart the scan
@@ -631,9 +653,10 @@ def run_program_procedure():
         elif order.profit_loss_function == 'swing_trade':
             current_price = asyncio.run(scf.current_price_scan(order.asset))
             amount_to_sell = order.initial_capital / current_price
+            # Will be using this in the future
             next_buy_amount = plf.swing_trade(amount_bought, amount_to_sell, order.swing_trade_skim)
-        asset_sold_price = asyncio.run(scf.current_price_scan(order.asset))
-        dollar_profit_loss = plf.dollar_profit_loss(order.asset_bought_price, asset_sold_price, amount_to_sell)
+        current_price = asyncio.run(scf.current_price_scan(order.asset))
+        dollar_profit_loss = plf.dollar_profit_loss(order.asset_bought_price, current_price, amount_to_sell)
         subject = 'DCDS'
         message = (f"Sell {amount_to_sell} from your {amount_bought} {order.asset} according to your "
                    f"selected {order.profit_loss_function} profit loss function for a current profit/loss of "
@@ -656,28 +679,56 @@ def run_program_procedure():
     all the data to the spreadsheet (different logs if bought or sold). otherwise, if the time expired and the 
     email response was none, restart the current order monitoring function
     """
-    email_response_dict = nof.email_reply_parser(email_response)
-    print(email_response_dict)
-    asset_amount_sold, asset_sold_total = nof.email_value_assigner(email_response_dict)
-    print(asset_amount_sold)
-    print(asset_sold_total)
     if email_response is None:
-        print("No email response!")
+        print("No email response, restarting program scanning!\n")
+        run_program_procedure()
     elif email_response:
+        email_response_parsed = nof.email_reply_parser(email_response)
+        email_response_dict = nof.email_value_assigner(email_response_parsed)
+        # if wait command in user response email, call the main program procedure after the wait period
+        check_if_wait(email_response_dict)
         if order.log_trade == 'excel':
-            # I need to get the asset sold total and the asset amount sold from the user to correctly log it to the
-            # spreadsheet, the user replied asset sold total should include fees already, so that's the real returned
-            # value
-            asset_sold_price = asyncio.run(scf.current_price_scan(order.asset))
-            dollar_profit_loss = plf.dollar_profit_loss(asset_amount_sold, asset_sold_total, order.asset_bought_price,
-                                                        asset_sold_price)
             try:
-                lof.log_trade(datetime.now(), order.start_type, order.asset, order.asset_bought_price, amount_bought,
-                              float(order.asset_bought_price) * float(amount_bought), asset_sold_price,
-                              asset_amount_sold, asset_sold_total, profit_loss_percent, dollar_profit_loss)
-                lof.calculate_totals()
-            except FileNotFoundError:
-                pass
+                email_dollar_total = float(email_response_dict['email_dollar_total'])
+                email_asset_amount = float(email_response_dict['email_asset_amount'])
+                current_price = asyncio.run(scf.current_price_scan(order.asset))
+                # I need to get the asset sold total and the asset amount sold from the user to correctly log it to
+                # the spreadsheet, the user replied asset sold total should include fees already, so that's the real
+                # returned value
+                if order.start_type == 'sell':
+                    dollar_profit_loss = plf.dollar_profit_loss(order.asset_bought_price,
+                                                                current_price,
+                                                                email_asset_amount,
+                                                                email_dollar_total)
+                    try:
+                        lof.log_trade(datetime.now(),
+                                      order.start_type,
+                                      order.asset,
+                                      order.asset_bought_price,
+                                      amount_bought,
+                                      float(order.asset_bought_price) * float(amount_bought),
+                                      current_price,
+                                      email_asset_amount,
+                                      email_dollar_total,
+                                      profit_loss_percent,
+                                      dollar_profit_loss)
+                        lof.calculate_totals()
+                    except FileNotFoundError:
+                        print('Workbook does not exist! Check your config file and make sure the workbook exists.')
+                        # Create workbook menu function
+                elif order.start_type == 'buy':
+                    try:
+                        lof.log_trade(datetime.now(),
+                                      order.start_type,
+                                      order.asset,
+                                      current_price,
+                                      email_asset_amount,
+                                      email_dollar_total)
+                    except FileNotFoundError:
+                        print('Workbook does not exist! Check your config file and make sure the workbook exists.')
+                        # Create workbook menu function
+            except Exception as e:
+                print(f'Error in main program during sell logging to excel spreadsheet: {e}')
         else:
             print('Trade logging skipped...')
 

@@ -25,6 +25,7 @@ def calculate_totals():
     total_profits = 0
 
     # Get the profit or loss of each row and calculate the total losses, total profits, and net
+    incorrect_rows = 0
     for row in sheet.iter_rows(min_row=2, max_row=sheet.max_row, min_col=12, max_col=12, values_only=True):
         try:
             profit_loss = row[0]
@@ -33,7 +34,12 @@ def calculate_totals():
             elif profit_loss > 0:
                 total_profits += profit_loss
         except Exception as e:
-            print(f"Incorrect data type in calculate_totals from logging_functions: {e}")
+            incorrect_rows = 1
+            # This function will always find the wrong data type in the first row, so this insures only real errors
+            # get reported
+            if incorrect_rows > 1:
+                print(f"Incorrect data type in calculate_totals from logging_functions: {e}")
+
     total_net = total_profits + total_losses
 
     # Write the totals in the last three columns
@@ -127,6 +133,6 @@ def read_history(ctx, param, value):
 
 
 if __name__ == "__main__":
-    create_initial_workbook()
-    calculate_totals()
+    #create_initial_workbook()
+    #calculate_totals()
     pass

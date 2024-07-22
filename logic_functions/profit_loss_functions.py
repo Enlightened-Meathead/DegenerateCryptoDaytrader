@@ -62,7 +62,7 @@ def swing_trade(amount_bought, amount_sold, skim_percent=0):
         profit_to_keep = (float(amount_sold) - float(amount_bought)) * (skim_percent * 0.01)
     # Return the amount in to use for the next buy order
     next_buy_amount = amount_sold - profit_to_keep
-    print(f"next_buy_amount: {next_buy_amount}")
+    print(f"Next_buy_amount: {next_buy_amount}")
     return next_buy_amount
 
 
