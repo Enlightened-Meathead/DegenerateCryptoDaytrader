@@ -1,5 +1,8 @@
-# Data stream URLs for gathering price and RSI info
-# PID 1057391 for the price,
+# If you want to grab more Coinbase websocket accessible pricing data, just add the name you want to see in the user
+# menu for selecting the asset as the dictionary key then the ticker symbol that Coinbase has in their public API.
+# For investing.com RSI data, just add more url variables and add then to the asset_url_pair Data stream URLs for
+
+# gathering price and RSI info PID 1057391 for the price,
 btc_url = 'https://www.investing.com/crypto/bitcoin/technical'
 eth_url = 'https://www.investing.com/crypto/ethereum/technical'
 sol_url = 'https://www.investing.com/crypto/solana/technical'

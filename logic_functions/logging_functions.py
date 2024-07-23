@@ -1,9 +1,30 @@
 ## Functions that take information from buy and sell orders then log it to a spreadsheet
+import os
 from openpyxl import Workbook, load_workbook
-from resources import creds
+from resources import config
 from datetime import datetime
 
-workbook_file_path = creds.trade_log_path
+workbook_file_path = config.trade_log_path
+
+
+def check_workbook_existence(filepath):
+    if not os.path.exists(filepath):
+        while True:
+            user_response = input(
+                f"The excel workbook filepath in your config does not exist, would you like to create "
+                f"one at {workbook_file_path}? yes/no: ").strip().lower()
+            if user_response == 'yes':
+                create_initial_workbook()
+                print('New workbook created!')
+                break
+            elif user_response == 'no':
+                print("Aborting logging the trade. If your trade log already exists, please enter an absolute "
+                      "filepath in the program config file. If the log doesn't exist, enter the filepath you want it "
+                      "to exist in the config file and run "
+                      "this program with the --create_workbook option to prompt this workbook creation menu again.")
+                return False
+            else:
+                print("Enter 'yes' or 'no'")
 
 
 # If you manually create a workbook in Excel or in my case LibreOffice Calc beforehand, you'll have issues with openpyxl
@@ -57,46 +78,38 @@ def calculate_totals():
 # trade and append it to the trade_log spreadsheet
 def log_trade(*args):
     # Load in the workbook and select the main sheet then find the current free row
-    workbook = None
     try:
         workbook = load_workbook(workbook_file_path)
-    except FileNotFoundError:
-        print("Workbook file does not seem to exist. Would you like to make a new workbook?")
-        answer = input("YES/no: ")
-        if answer == 'YES':
-            create_initial_workbook()
-            workbook = load_workbook(workbook_file_path)
-        else:
-            print("Skipping logging the trade!")
-            return
-    sheet = workbook.active
-    next_row = sheet.max_row + 1
-    order_number = sheet.max_row
-    # Create a list of values to be appended from arguments passed to the function
-    values_to_append = list(args)
-    values_to_append = [order_number] + values_to_append
+        sheet = workbook.active
+        next_row = sheet.max_row + 1
+        order_number = sheet.max_row
+        # Create a list of values to be appended from arguments passed to the function
+        values_to_append = list(args)
+        values_to_append = [order_number] + values_to_append
 
-    # Add each value to their cells
-    for column, value in enumerate(values_to_append, start=1):
+        # Add each value to their cells
+        for column, value in enumerate(values_to_append, start=1):
+            try:
+                value = float(value)
+            except:
+                pass
+            sheet.cell(row=next_row, column=column, value=value)
+        #        print(f"Writing to row: {next_row}, column: {column}, value: {value}")
+        # Save the changes to the spreadsheet
         try:
-            value = float(value)
-        except:
-            pass
-        sheet.cell(row=next_row, column=column, value=value)
-    #        print(f"Writing to row: {next_row}, column: {column}, value: {value}")
-    # Save the changes to the spreadsheet
-    try:
-        workbook.save(workbook_file_path)
-        workbook.close()
-        print(f"Order appended to {workbook_file_path}")
-    except Exception as e:
-        print(f"Error in log_trade trying to save to workbook: {e}")
+            workbook.save(workbook_file_path)
+            workbook.close()
+            print(f"Order appended to {workbook_file_path}")
+        except Exception as e:
+            print(f"Error in log_trade trying to save to workbook: {e}")
+    except FileNotFoundError:
+        print("Workbook not found! Error in log_trade function")
 
 
 # Print a one-liner that the user can copy and paste the next time they want to run this trade as a one-liner
 def repeat_one_liner(selected_user_options):
     # Make this a config setting that lets the user save what they have their alias to the log file
-    program_alias = "degenerate_crypto_daytrader"
+    program_alias = config.repeat_one_liner_alias
     command_option_list = []
     print("\n===========================\nCurrent options one-liner:\n===========================")
     # Add the --option value strings to a list then join the list
@@ -118,6 +131,12 @@ def repeat_one_liner(selected_user_options):
     # Man page entry for this function
 
 
+"""Here is a one-liner of your settings for this trade; if you wish to make " "this exact trade again," "you can copy 
+this command to save somewhere and/or alias it along with different trades you plan on making " "on a frequent basis. 
+This command will be saved to the 'dcd_command_history.txt' in this programs directory. " "Besides manually reading 
+this file, if you would like to print your previous commands, run this program " "with the --history option."""
+
+
 # Read the command history log file
 def read_history(ctx, param, value):
     if value == "view":
@@ -135,4 +154,5 @@ def read_history(ctx, param, value):
 if __name__ == "__main__":
     #create_initial_workbook()
     #calculate_totals()
+    check_workbook_existence("/home/stephen/asdfa")
     pass

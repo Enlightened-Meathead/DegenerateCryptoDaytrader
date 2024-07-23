@@ -8,14 +8,14 @@ import re
 import gnupg
 from email.mime.text import MIMEText
 from email.header import decode_header
-from resources import creds
+from resources import config
 
 
 # Send yourself a PGP encrypted email using a Gmail for the sender and whichever PGP compatible email recipient you want
 def notify_email(subject, message, public_key=None):
     # If no key was passed, try finding one in the creds file
     try:
-        public_key = creds.public_key
+        public_key = config.public_key
     except Exception as e:
         # If the encryption key is not found, still send the email unencrypted
         print(f"Error getting public key from creds file: {e}. If you didn't want to encrypt the email, ignore this "
@@ -43,14 +43,14 @@ def notify_email(subject, message, public_key=None):
     # Create the email message`
     msg = MIMEText(str(final_message))
     msg["Subject"] = subject
-    msg["From"] = creds.sender_email
-    msg["To"] = creds.recipient_email
+    msg["From"] = config.sender_email
+    msg["To"] = config.recipient_email
 
     # SMTP server settings
     smtp_server = "smtp.gmail.com"
     smtp_port = 587
-    smtp_username = creds.sender_email
-    smtp_password = creds.sender_password
+    smtp_username = config.sender_email
+    smtp_password = config.sender_password
 
     # Establish a connection to the SMTP server
     with smtplib.SMTP(smtp_server, smtp_port) as server:
@@ -59,7 +59,7 @@ def notify_email(subject, message, public_key=None):
         # Log in to the SMTP server
         server.login(smtp_username, smtp_password)
         # Send the email
-        server.sendmail(creds.sender_email, creds.recipient_email, msg.as_string())
+        server.sendmail(config.sender_email, config.recipient_email, msg.as_string())
     print("Email notification sent successfully.")
 
 
@@ -84,11 +84,11 @@ def get_plain_text_body(message):
     return None
 
 
-def check_email_response(timeout=creds.email_check_timeout, check_interval=creds.email_check_interval):
+def check_email_response(timeout=config.email_check_timeout, check_interval=config.email_check_interval):
     print("Starting email reply checker...")
-    email_to_check = creds.sender_email
-    password = creds.sender_password
-    search_subject = creds.email_subject_check
+    email_to_check = config.sender_email
+    password = config.sender_password
+    search_subject = config.email_subject_check
     end_time = time.time() + timeout
     #try:
     while time.time() < end_time:
@@ -138,9 +138,9 @@ def email_reply_parser(email_response):
             # Split the command into the key value pair using only the first colon
             key, value = value.split(':', 1)
             email_values_dict[key.strip()] = value.strip()
-        for key, value in creds.email_response_keys.items():
+        for key, value in config.email_response_keys.items():
             if key in email_values_dict.keys():
-                variable_key_name = creds.email_response_keys[key]
+                variable_key_name = config.email_response_keys[key]
                 email_response_dict[variable_key_name] = email_values_dict[key]
         return email_response_dict
     except Exception as e:
@@ -150,7 +150,7 @@ def email_reply_parser(email_response):
 def email_value_assigner(email_response_dict):
     email_response_search_patterns = [r'[\d.]+', r'\d{2}:\d{2}:\d{2}']
     print("User values/commands found in email:")
-    for search_key in creds.email_response_keys.values():
+    for search_key in config.email_response_keys.values():
         if search_key in email_response_dict.keys():
             for pattern in email_response_search_patterns:
                 searched_string = re.search(pattern, email_response_dict[search_key])
@@ -172,11 +172,10 @@ def email_value_assigner(email_response_dict):
 
 if __name__ == "__main__":
     #notify_email('dcdt', f"test not encrypt new")
-    email_response = check_email_response(20, 10)
-    dict = email_reply_parser(email_response)
-    print(dict)
-    m = email_value_assigner(dict)
-    print(f'final: {m}')
-
+    #email_response = check_email_response(20, 10)
+    #dict = email_reply_parser(email_response)
+    #print(dict)
+    #m = email_value_assigner(dict)
+    #print(f'final: {m}')
     #email_value_assigner(email_response)
     pass

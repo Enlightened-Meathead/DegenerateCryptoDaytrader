@@ -1,5 +1,6 @@
 # # The main program file. The click library has some goofy behavior that requires alot of these functions to be in
-# the same module, so this module is what it is
+# the same module, and after being way too deep in the project I learned click probably wasn't the best choice,
+# so this module is what it is :P
 
 # Standard Library
 import asyncio
@@ -68,6 +69,8 @@ final_user_options = {}
 selected_user_options = {}
 click_objects_dict = {}
 
+def check_for_config():
+    pass
 
 # If an option is called that needs additional dependencies, add it to the list of missing options
 def validate_dependent_options(ctx, param, value):
@@ -143,8 +146,7 @@ enter them
 
 
 # IF YOU ENTER THE MENU OPTION AS THE FIRST OPTION PASSED, NO ARGUMENTS GET PASSED TO CLICK
-# Figure out a way to shrink this function down in the future.
-# Click CLI menu that parses user input for the required options not passed on the command line
+#  CLI menu that parses user input for the required options not passed on the command line
 def click_menu(ctx, param, value):
     global REQUIRED_OPTIONS
     global total_missing_options
@@ -200,7 +202,7 @@ This big kahuna is a user review menu that takes the user inputs from the comman
 review them and update them. Once the user confirms their final settings, it takes all the user inputs and converts 
 them to a one-liner they can copy paste if they want to run the same trade and stores it into a command history log 
 file for this program. The reason this function is so massive is because I was struggling to pass the click context 
-to multiple functions without issues so here we are for now with this abomination. Future refactor material
+to multiple functions without issues so here we are for now with this abomination. Future refactor material!
 """
 
 
@@ -330,10 +332,28 @@ def check_enough_capital(input_value):
         raise click.BadParameter("Please enter a positive number of the value you wish to buy the trade with")
 
 
-"""Here is a one-liner of your settings for this trade; if you wish to make " "this exact trade again," "you can copy 
-this command to save somewhere and/or alias it along with different trades you plan on making " "on a frequent basis. 
-This command will be saved to the 'dcd_command_history.txt' in this programs directory. " "Besides manually reading 
-this file, if you would like to print your previous commands, run this program " "with the --history option."""
+# Take the click command arguments passed at the command line and combine them with the menu assigned options
+def merge_user_inputs(**kwargs):
+    global menu_assigned_options
+    global final_user_options
+    global click_objects_dict
+    global selected_user_options
+
+    # Take every click option and make into a dictionary to be referenced for outside the scope of the click
+    # command options that normally are only accessible directly read from the initial command line input
+    ctx = click.get_current_context()
+    for param in ctx.command.params:
+        click_objects_dict[param.name] = param.type
+
+    # If the user did not specify no_menu in the case of a one-liner, then give them a menu for any missing options
+    # and to have them review and confirm their settings
+
+    # Merge the click command line options with the menu options overwriting the click options
+    final_user_options = kwargs | menu_assigned_options
+    if ctx.params['menu'] == 'menu':
+        # Menu, review page, dependency option checks, and finalize everything into a single dictionary
+        finalize_user_inputs()
+        lof.repeat_one_liner(selected_user_options)
 
 
 # Pass the final user options to the Order class
@@ -401,7 +421,8 @@ def buy_sell_signal_scan(order):
         print("The program was unable to determine a buy or sell to start the trade. ABORTING!")
         exit()
 
-# Create email message if buy scan is found
+
+# Create email message if buy signal is found
 def buy_signal_email(order):
     print("Buy signal found!")
     current_price = asyncio.run(scf.current_price_scan(order.asset))
@@ -410,6 +431,30 @@ def buy_signal_email(order):
     message = (
         f"Buy {amount_to_buy} {order.asset} for the current price of ${current_price} at "
         f"the time of this email")
+    return subject, message
+
+
+# Create email message if a sell signal is found
+def sell_signal_email(order):
+    print("Sell signal found!")
+    amount_to_sell = 0
+    order.amount_bought = order.initial_capital / order.asset_bought_price
+    profit_loss_percent = asyncio.run(plf.profit_loss_percent(order.asset, order.asset_bought_price)) * 100
+    if order.profit_loss_function == 'profit_harvest':
+        # add in a user click option if they want a full sell for the profit harvest
+        amount_to_sell = plf.profit_harvest(order.asset, order.asset_bought_price, order.amount_bought)
+    elif order.profit_loss_function == 'swing_trade':
+        current_price = asyncio.run(scf.current_price_scan(order.asset))
+        amount_to_sell = order.initial_capital / current_price
+        # Will be using this in the future
+        # next_buy_amount = plf.swing_trade(order.amount_bought, amount_to_sell, order.swing_trade_skim)
+    current_price = asyncio.run(scf.current_price_scan(order.asset))
+    dollar_profit_loss = plf.dollar_profit_loss(order.asset_bought_price, current_price, amount_to_sell)
+    subject = 'DCDS'
+    message = (f"Sell {amount_to_sell} from your {order.amount_bought} {order.asset} according to your "
+               f"selected {order.profit_loss_function} profit loss function for a current profit/loss of "
+               f"{profit_loss_percent:.2f}% for ${dollar_profit_loss:.2f} of gains/losses")
+    return subject, message
 
 
 # Check if the user tells the program to wait, then if so restart the scan after the wait time
@@ -423,28 +468,59 @@ def check_if_wait(email_response_dict):
         run_program_procedure()
 
 
-# Take the click command arguments passed at the command line and combine them with the menu assigned options
-def merge_user_inputs(**kwargs):
-    global menu_assigned_options
-    global final_user_options
-    global click_objects_dict
-    global selected_user_options
-
-    # Take every click option and make into a dictionary to be referenced for outside the scope of the click
-    # command options that normally are only accessible directly read from the initial command line input
-    ctx = click.get_current_context()
-    for param in ctx.command.params:
-        click_objects_dict[param.name] = param.type
-
-    # If the user did not specify no_menu in the case of a one-liner, then give them a menu for any missing options
-    # and to have them review and confirm their settings
-
-    # Merge the click command line options with the menu options overwriting the click options
-    final_user_options = kwargs | menu_assigned_options
-    if ctx.params['menu'] == 'menu':
-        # Menu, review page, dependency option checks, and finalize everything into a single dictionary
-        finalize_user_inputs()
-        lof.repeat_one_liner(selected_user_options)
+# Take the email response and see if the user wants to wait or if they made the trade. If they did, log the trade
+def log_trade_check(email_response, order):
+    email_response_parsed = nof.email_reply_parser(email_response)
+    email_response_dict = nof.email_value_assigner(email_response_parsed)
+    # if wait command in user response email, call the main program procedure after the wait period
+    check_if_wait(email_response_dict)
+    if order.log_trade == 'excel':
+        lof.check_workbook_existence(lof.workbook_file_path)
+        try:
+            email_dollar_total = float(email_response_dict['email_dollar_total'])
+            email_asset_amount = float(email_response_dict['email_asset_amount'])
+            current_price = asyncio.run(scf.current_price_scan(order.asset))
+            # I need to get the asset sold total and the asset amount sold from the user to correctly log it to
+            # the spreadsheet, the user replied asset sold total should include fees already, so that's the real
+            # returned value
+            if order.start_type == 'sell':
+                dollar_profit_loss = plf.dollar_profit_loss(order.asset_bought_price,
+                                                            current_price,
+                                                            email_asset_amount,
+                                                            email_dollar_total)
+                profit_loss_percent = asyncio.run(
+                    plf.profit_loss_percent(order.asset, order.asset_bought_price)) * 100
+                try:
+                    lof.log_trade(datetime.now(),
+                                  order.start_type,
+                                  order.asset,
+                                  order.asset_bought_price,
+                                  order.amount_bought,
+                                  float(order.asset_bought_price) * float(order.amount_bought),
+                                  current_price,
+                                  email_asset_amount,
+                                  email_dollar_total,
+                                  profit_loss_percent,
+                                  dollar_profit_loss)
+                    lof.calculate_totals()
+                except FileNotFoundError:
+                    print('Workbook does not exist! Check your config file and make sure the workbook exists.')
+                    # Create workbook menu function
+            elif order.start_type == 'buy':
+                try:
+                    lof.log_trade(datetime.now(),
+                                  order.start_type,
+                                  order.asset,
+                                  current_price,
+                                  email_asset_amount,
+                                  email_dollar_total)
+                except FileNotFoundError:
+                    print('Workbook does not exist! Check your config file and make sure the workbook exists.')
+                    # Create workbook menu function
+        except Exception as e:
+            print(f'Error in main program during sell logging to excel spreadsheet: {e}')
+    else:
+        print('Trade logging skipped...')
 
 
 '''
@@ -619,9 +695,9 @@ def run_program_procedure():
     1. After gathering and parsing all user input,  create an Order object
     """
     order = create_order_object()
+
     """
-    2. Based on initial buy or sell scan, begin the scan protocol to buy or sell. Also, rescan if the user doesn't
-    reply in a certain amount of time or the user says to cancel and restart the scan
+    2. Based on initial buy or sell scan, begin the scan protocol to buy or sell. 
     """
     signal = buy_sell_signal_scan(order)
 
@@ -629,40 +705,12 @@ def run_program_procedure():
     3. Once a signal is true, calculate how much to sell with profit/loss function or tell the user to buy now
     and use that information to craft a message for the email notification
     """
-    subject = ''
-    message = ''
-
-    amount_to_sell = 0
-    amount_bought = 0
-    profit_loss_percent = 0
+    subject, message = None, None
     if signal == 'buy':
-        print("Buy signal found!")
-        current_price = asyncio.run(scf.current_price_scan(order.asset))
-        amount_to_buy = order.initial_capital / order.asset_bought_price
-        subject = 'DCDB'
-        message = (
-            f"Buy {amount_to_buy} {order.asset} for the current price of ${current_price} at "
-            f"the time of this email")
+        subject, message = buy_signal_email(order)
     elif signal == 'sell':
-        print("Sell signal found!")
-        amount_bought = order.initial_capital / order.asset_bought_price
-        profit_loss_percent = asyncio.run(plf.profit_loss_percent(order.asset, order.asset_bought_price)) * 100
-        if order.profit_loss_function == 'profit_harvest':
-            # add in a user click option if they want a full sell for the profit harvest
-            amount_to_sell = plf.profit_harvest(order.asset, order.asset_bought_price, amount_bought)
-        elif order.profit_loss_function == 'swing_trade':
-            current_price = asyncio.run(scf.current_price_scan(order.asset))
-            amount_to_sell = order.initial_capital / current_price
-            # Will be using this in the future
-            next_buy_amount = plf.swing_trade(amount_bought, amount_to_sell, order.swing_trade_skim)
-        current_price = asyncio.run(scf.current_price_scan(order.asset))
-        dollar_profit_loss = plf.dollar_profit_loss(order.asset_bought_price, current_price, amount_to_sell)
-        subject = 'DCDS'
-        message = (f"Sell {amount_to_sell} from your {amount_bought} {order.asset} according to your "
-                   f"selected {order.profit_loss_function} profit loss function for a current profit/loss of "
-                   f"{profit_loss_percent:.2f}% for ${dollar_profit_loss:.2f} of gains/losses")
-    else:
-        print("The buy and sell signal checks ended, but somehow none were set to true. ABORTING!")
+        subject, message = sell_signal_email(order)
+
     """
     4. Take the values I want in the message and the put them into an email to notify me
     """
@@ -683,54 +731,7 @@ def run_program_procedure():
         print("No email response, restarting program scanning!\n")
         run_program_procedure()
     elif email_response:
-        email_response_parsed = nof.email_reply_parser(email_response)
-        email_response_dict = nof.email_value_assigner(email_response_parsed)
-        # if wait command in user response email, call the main program procedure after the wait period
-        check_if_wait(email_response_dict)
-        if order.log_trade == 'excel':
-            try:
-                email_dollar_total = float(email_response_dict['email_dollar_total'])
-                email_asset_amount = float(email_response_dict['email_asset_amount'])
-                current_price = asyncio.run(scf.current_price_scan(order.asset))
-                # I need to get the asset sold total and the asset amount sold from the user to correctly log it to
-                # the spreadsheet, the user replied asset sold total should include fees already, so that's the real
-                # returned value
-                if order.start_type == 'sell':
-                    dollar_profit_loss = plf.dollar_profit_loss(order.asset_bought_price,
-                                                                current_price,
-                                                                email_asset_amount,
-                                                                email_dollar_total)
-                    try:
-                        lof.log_trade(datetime.now(),
-                                      order.start_type,
-                                      order.asset,
-                                      order.asset_bought_price,
-                                      amount_bought,
-                                      float(order.asset_bought_price) * float(amount_bought),
-                                      current_price,
-                                      email_asset_amount,
-                                      email_dollar_total,
-                                      profit_loss_percent,
-                                      dollar_profit_loss)
-                        lof.calculate_totals()
-                    except FileNotFoundError:
-                        print('Workbook does not exist! Check your config file and make sure the workbook exists.')
-                        # Create workbook menu function
-                elif order.start_type == 'buy':
-                    try:
-                        lof.log_trade(datetime.now(),
-                                      order.start_type,
-                                      order.asset,
-                                      current_price,
-                                      email_asset_amount,
-                                      email_dollar_total)
-                    except FileNotFoundError:
-                        print('Workbook does not exist! Check your config file and make sure the workbook exists.')
-                        # Create workbook menu function
-            except Exception as e:
-                print(f'Error in main program during sell logging to excel spreadsheet: {e}')
-        else:
-            print('Trade logging skipped...')
+        log_trade_check(email_response, order)
 
 
 if __name__ == '__main__':
