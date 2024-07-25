@@ -14,19 +14,27 @@ def int_convert(potential_int):
         print(f"Error in order_class file converting the '{potential_int}' user input")
 
 
+def negate_loss_limit(percent_loss_limit):
+    try:
+        loss_limit = float_convert(percent_loss_limit)
+        return loss_limit
+    except TypeError:
+        pass
+
+
 class Order:
     def __init__(self,
                  # Required user inputs
                  bot_type,
                  asset,
-                 capital,
                  start_type,
-                 percent_loss_limit,
                  profit_loss_function,
                  initial_capital,
                  menu,
                  log_trade,
                  # Individually optional user inputs
+                 capital=None,
+                 percent_loss_limit=None,
                  buy_order_type=None,
                  sell_order_type=None,
                  asset_bought_price=None,
@@ -44,12 +52,13 @@ class Order:
                  ladder_timer_sensitivity=None,
                  history=None,
                  amount_bought=None,
+                 message_history=None,
                  ):
         self.bot_type = bot_type
         self.asset = asset
         self.capital = capital
         self.start_type = start_type
-        self.percent_loss_limit = -float_convert(percent_loss_limit)
+        self.percent_loss_limit = negate_loss_limit(percent_loss_limit)
         self.profit_loss_function = profit_loss_function
         self.initial_capital = float_convert(initial_capital)
         self.menu = menu
@@ -71,6 +80,7 @@ class Order:
         self.ladder_timer_sensitivity = float_convert(ladder_timer_sensitivity)
         self.history = history
         self.amount_bought = amount_bought
+        self.message_history = message_history
 
     def __repr__(self):
         return (f"Order(bot_type={self.bot_type}, asset={self.asset}, capital={self.capital}, "
@@ -83,10 +93,5 @@ class Order:
                 f"rsi_wait_period={self.rsi_wait_period}, minimum_ladder_profit={self.minimum_ladder_profit}, "
                 f"ladder_step_gain={self.ladder_step_gain}, ladder_step_loss={self.ladder_step_loss}, "
                 f"ladder_timer_duration={self.ladder_timer_duration}, ladder_step_sensitivity={self.ladder_step_sensitivity},"
-                f"ladder_timer_sensitivity={self.ladder_timer_sensitivity}, history={self.history})")
-
-    def buy_scan(self):
-        pass
-
-    def sell_scan(self):
-        pass
+                f"ladder_timer_sensitivity={self.ladder_timer_sensitivity}, history={self.history}, "
+                f"amount_bought={self.amount_bought}, message_history={self.message_history})")

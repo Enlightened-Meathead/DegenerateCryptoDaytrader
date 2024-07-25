@@ -1,4 +1,5 @@
-# # The main program file. The click library has some goofy behavior that requires alot of these functions to be in
+#!/usr/bin/env python3
+## The main program file. The click library has some goofy behavior that requires alot of these functions to be in
 # the same module, and after being way too deep in the project I learned click probably wasn't the best choice,
 # so this module is what it is :P
 
@@ -7,9 +8,36 @@ import asyncio
 import re
 import time
 from datetime import datetime
+from os import path
 
 # Community library for creating CLI text based applications and parsing arguments and command options
 import click
+
+
+# Check if the config file exists before importing the local modules that depend on it. If it isn't found, create one
+def check_for_config():
+    config_path = './resources/config.py'
+    default_config_path = './resources/default_config.py'
+    if not path.isfile(config_path):
+        print(f"{config_path} does not exist. If this is your first time running this program, a config file has now "
+              f"been created. If you want to use this program for more than just a desktop notifier, "
+              f"such as getting email notifications and logging your trades to an excel workbook, a copy of the "
+              f"default_config.py found in the resources directory has been made and named config.py. Make your "
+              f"alterations to the config file before using this program if you want these extra features.")
+        if path.isfile(default_config_path):
+            try:
+                import shutil
+                shutil.copy(default_config_path, config_path)
+                print(f"Copied {default_config_path} to {config_path}.")
+            except Exception as e:
+                print(f"An error occurred while copying the file: {e}")
+        else:
+            print(f"Default config file {default_config_path} does not exist. Please go to the projects github page "
+                  f"and retrieve the default_config.py and place it in the resources directory. Aborting!")
+            exit()
+
+
+check_for_config()
 
 # Local module imports
 from logic_functions import logging_functions as lof
@@ -17,6 +45,7 @@ from logic_functions import profit_loss_functions as plf
 from logic_functions import scan_functions as scf
 from logic_functions import notify_functions as nof
 from order_class import Order
+from resources import config
 
 menu_banner = """
 $$$$$$                                                                
@@ -43,13 +72,15 @@ $     $ $$$$$$   $     $   $$$$$  $$$$$$ $    $ $      $$$$$
 $     $ $    $   $     $   $   $  $    $ $    $ $      $   $  
 $$$$$$  $    $   $     $   $    $ $    $ $$$$$  $$$$$$ $    $ 
 
-==================================================================
-BEFORE USING THIS PROGRAM, READ THE DOCUMENTATION AND/OR MAN PAGE!
-==================================================================
+===================================================================
+BEFORE USING THIS PROGRAM, READ THE DOCUMENTATION AND/OR HELP PAGE!
+===================================================================
 """
-# Right now, for one-liners make sure any additional option dependencies are declared before their parent option
+# The click library context stores the params and values in a dictionary, and therefore instead of initially
+# assigning the values to an object, various global lists and dictionaries are used to tussle with the weird click
+# menu behavior and once everything is settled, then pass the final values to an order object
 
-# Options that become required only if other options are called
+# Options that become required only if other options are called.
 OPTION_DEPENDENCIES = {
     'basic_buy': ['basic_buy_price'],
     'rsi_buy': ['rsi_buy_number', 'rsi_drop_limit', 'rsi_wait_period'],
@@ -57,11 +88,10 @@ OPTION_DEPENDENCIES = {
     'ladder': ['minimum_ladder_profit', 'ladder_step_gain', 'ladder_step_loss', 'ladder_timer_duration',
                'ladder_step_sensitivity', 'ladder_timer_sensitivity'],
     'swing_trade': ['swing_trade_skim'],
-    'sell': ['asset_bought_price', 'sell_order_type', 'percent_loss_limit'],
+    'sell': ['asset_bought_price', 'sell_order_type', 'percent_loss_limit', 'profit_loss_function'],
     'buy': ['buy_order_type'],
 }
-REQUIRED_OPTIONS = ['bot_type', 'asset', 'capital', 'start_type',
-                    'profit_loss_function', 'initial_capital', 'log_trade']
+REQUIRED_OPTIONS = ['bot_type', 'asset', 'start_type', 'initial_capital', 'log_trade']
 
 total_missing_options = []
 menu_assigned_options = {}
@@ -69,15 +99,13 @@ final_user_options = {}
 selected_user_options = {}
 click_objects_dict = {}
 
-def check_for_config():
-    pass
 
 # If an option is called that needs additional dependencies, add it to the list of missing options
 def validate_dependent_options(ctx, param, value):
     global total_missing_options
     missing_options = []
     # Value is the name of the click context value, so that's why I'm using value for the key name
-    if value in OPTION_DEPENDENCIES.keys() and ctx.params.get("menu") != "menu":
+    if value in OPTION_DEPENDENCIES and ctx.params.get("menu") != "menu":
         for option in OPTION_DEPENDENCIES[value]:
             # If an option required by the parent option is not present, make it required
             if option not in ctx.params:
@@ -106,7 +134,7 @@ def make_required(ctx, param, value):
                     param.required = True
 
 
-# Check to see if there are any missing options. If so, abort the program.
+# Check to see if there are any missing options.
 def check_missing_options():
     global total_missing_options
     if total_missing_options:
@@ -126,11 +154,11 @@ def set_dependency_options(option_dependency, ctx):
 # Recursive function that checks if menu input has dependency then check if that dependency input has dependencies, etc
 def menu_dependency_check(user_input, ctx):
     global OPTION_DEPENDENCIES
-    if user_input in OPTION_DEPENDENCIES.keys():
+    if user_input in OPTION_DEPENDENCIES:
         # For every dependency for the user input option
         for option_dependency in OPTION_DEPENDENCIES[user_input]:
             # Check if the dependency was passed at the command line, if not, prompt the user to add it.
-            if option_dependency not in ctx.params.keys():
+            if option_dependency not in ctx.params:
                 dependency_user_input = set_dependency_options(option_dependency, ctx)
                 menu_dependency_check(dependency_user_input, ctx)
 
@@ -140,12 +168,11 @@ For the menu, for every option, create a prompt with the message being the help 
 prompt choice, then make the answer to that prompt equal to the parameter value for that parameters name then pass 
 that option to click. If the program is called with menu and some options, start the menu but only for their missing 
 options - say the user is missing some options, and tell them if they dont want this menu pass the argument no menu - 
-check if the passed options require optional dependencies. for every global total missing option, prompt the user to 
+check if the passed options require optional dependencies. For every global total missing option, prompt the user to 
 enter them
 '''
 
 
-# IF YOU ENTER THE MENU OPTION AS THE FIRST OPTION PASSED, NO ARGUMENTS GET PASSED TO CLICK
 #  CLI menu that parses user input for the required options not passed on the command line
 def click_menu(ctx, param, value):
     global REQUIRED_OPTIONS
@@ -156,7 +183,7 @@ def click_menu(ctx, param, value):
         click.echo(menu_banner)
         for option in ctx.command.params:
             # For every option in the click command that hasn't been given a value yet and is required:
-            if option.name not in ctx.params.keys() and option.name in REQUIRED_OPTIONS:
+            if option.name not in ctx.params and option.name in REQUIRED_OPTIONS:
                 user_input = click.prompt(f"{option.help}", type=option.type)
                 # If the user input has associated dependencies
                 menu_dependency_check(user_input, ctx)
@@ -181,7 +208,6 @@ def integer_or_cancel(user_input):
             return user_input
 
 
-#
 def finalize_dependent_options(changed_option_value):
     global final_user_options
     global click_objects_dict
@@ -193,7 +219,6 @@ def finalize_dependent_options(changed_option_value):
         final_user_options[option] = changed_option_value
         if changed_option_value in OPTION_DEPENDENCIES.keys():
             finalize_dependent_options(changed_option_value)
-    print(final_user_options)
 
 
 # Could definitely be optimized, but for now its functional
@@ -274,13 +299,13 @@ def finalize_user_inputs():
                 # Update the final list of options with the changed value
                 final_user_options[user_option_change] = changed_option_value
                 # Check to see if the updated option adds any dependent options, and if that's the case, prompt the user
-                if changed_option_value in OPTION_DEPENDENCIES.keys():
+                if changed_option_value in OPTION_DEPENDENCIES:
                     dependency_options = OPTION_DEPENDENCIES[changed_option_value]
                     for option in dependency_options:
                         dependency_choice = click_objects_dict[option]
                         changed_option_value = click.prompt(f'Enter new value for {option}', type=dependency_choice)
                         final_user_options[option] = changed_option_value
-                        if changed_option_value in OPTION_DEPENDENCIES.keys():
+                        if changed_option_value in OPTION_DEPENDENCIES:
                             dependency_options = OPTION_DEPENDENCIES[changed_option_value]
                             for dependency_option in dependency_options:
                                 dependency_choice = click_objects_dict[dependency_option]
@@ -288,8 +313,8 @@ def finalize_user_inputs():
                                                                     type=dependency_choice)
                                 final_user_options[dependency_option] = changed_option_value
 
-        # Ask the user again if they want to anything, if no, make them type CONFIRM to start the bot with a prompt
-        # that gives them a legal warning
+        # Ask the user again if they want to change anything, if no, make them type CONFIRM to start the bot with a
+        # prompt that gives them a legal warning
         if display_options:
             print("\n===========================\nYour current option values:\n===========================")
             for key, value in final_user_options.items():
@@ -362,14 +387,14 @@ def create_order_object():
     order = Order(
         bot_type=final_user_options['bot_type'],
         asset=final_user_options['asset'],
-        capital=final_user_options['capital'],
         start_type=final_user_options['start_type'],
-        percent_loss_limit=final_user_options['percent_loss_limit'],
-        profit_loss_function=final_user_options['profit_loss_function'],
         initial_capital=final_user_options['initial_capital'],
         menu=final_user_options['menu'],
         log_trade=final_user_options['log_trade'],
         # Click already assigns optional inputs to None, but for clarity I added the .get and None for key errors
+        capital=final_user_options.get('capital', None),
+        percent_loss_limit=final_user_options.get('percent_loss_limit', None),
+        profit_loss_function=final_user_options.get('profit_loss_function', None),
         buy_order_type=final_user_options.get('buy_order_type', None),
         sell_order_type=final_user_options.get('sell_order_type', None),
         asset_bought_price=final_user_options.get('asset_bought_price', None),
@@ -394,7 +419,7 @@ def create_order_object():
 def buy_sell_signal_scan(order):
     buy_signal = False
     sell_signal = False
-    # 2. Based on initial buy or sell scan, begin the scan protocol to buy or sell. Also, rescan if the user doesn't
+    # Based on initial buy or sell scan, begin the scan protocol to buy or sell. Also, rescan if the user doesn't
     # reply in a certain amount of time or the user says to cancel and restart the scan
     if order.start_type == 'buy':
         if order.buy_order_type == 'basic_buy':
@@ -423,117 +448,132 @@ def buy_sell_signal_scan(order):
 
 
 # Create email message if buy signal is found
-def buy_signal_email(order):
+def buy_signal_message(order):
     print("Buy signal found!")
     current_price = asyncio.run(scf.current_price_scan(order.asset))
-    amount_to_buy = order.initial_capital / order.asset_bought_price
+    amount_to_buy = order.initial_capital / current_price
     subject = 'DCDB'
     message = (
         f"Buy {amount_to_buy} {order.asset} for the current price of ${current_price} at "
-        f"the time of this email")
+        f"the time of this message")
     return subject, message
 
 
 # Create email message if a sell signal is found
-def sell_signal_email(order):
+def sell_signal_message(order):
     print("Sell signal found!")
     amount_to_sell = 0
     order.amount_bought = order.initial_capital / order.asset_bought_price
     profit_loss_percent = asyncio.run(plf.profit_loss_percent(order.asset, order.asset_bought_price)) * 100
-    if order.profit_loss_function == 'profit_harvest':
-        # add in a user click option if they want a full sell for the profit harvest
-        amount_to_sell = plf.profit_harvest(order.asset, order.asset_bought_price, order.amount_bought)
-    elif order.profit_loss_function == 'swing_trade':
-        current_price = asyncio.run(scf.current_price_scan(order.asset))
-        amount_to_sell = order.initial_capital / current_price
-        # Will be using this in the future
-        # next_buy_amount = plf.swing_trade(order.amount_bought, amount_to_sell, order.swing_trade_skim)
     current_price = asyncio.run(scf.current_price_scan(order.asset))
-    dollar_profit_loss = plf.dollar_profit_loss(order.asset_bought_price, current_price, amount_to_sell)
+    dollar_profit_loss = 0
+    next_buy_amount = None
+    if order.profit_loss_function == 'profit_harvest':
+        amount_to_sell = plf.profit_harvest(order.asset, order.asset_bought_price, order.amount_bought)
+        dollar_profit_loss = plf.dollar_profit_loss(order.asset_bought_price, current_price, order.amount_bought)
+    elif order.profit_loss_function == 'swing_trade':
+        amount_to_sell = 'all'
+        dollar_profit_loss = plf.dollar_profit_loss(order.asset_bought_price, current_price, order.amount_bought)
+        next_buy_amount = plf.swing_trade(order.initial_capital, order.amount_bought,
+                                          current_price, order.swing_trade_skim)
     subject = 'DCDS'
-    message = (f"Sell {amount_to_sell} from your {order.amount_bought} {order.asset} according to your "
+    message = (f"Sell {amount_to_sell} of your {order.amount_bought} {order.asset} according to your "
                f"selected {order.profit_loss_function} profit loss function for a current profit/loss of "
                f"{profit_loss_percent:.2f}% for ${dollar_profit_loss:.2f} of gains/losses")
+    if next_buy_amount is not None:
+        message = message + (f" and buy ${next_buy_amount} for your next buy order according to your desired profit to "
+                             f"skim from your swing trade.")
     return subject, message
 
 
 # Check if the user tells the program to wait, then if so restart the scan after the wait time
-def check_if_wait(email_response_dict):
-    if 'bot_time_to_wait' in email_response_dict.keys():
-        wait_time = email_response_dict['bot_time_to_wait']
-        print(f"Told to wait {wait_time}!")
-        wait_time_seconds = scf.time_to_seconds(wait_time)
-        time.sleep(wait_time_seconds)
-        print("Restarting program after user wait period time expired...")
-        run_program_procedure()
+def check_if_wait(user_response_dict):
+    if 'bot_time_to_wait' in user_response_dict:
+        if user_response_dict['bot_time_to_wait'] != '':
+            wait_time = user_response_dict['bot_time_to_wait']
+            print(f"Told to wait {wait_time}!")
+            wait_time_seconds = scf.time_to_seconds(wait_time)
+            time.sleep(wait_time_seconds)
+            print("Restarting program after user wait period time expired...")
+            run_program_procedure()
+
+
+def desktop_notify_menu():
+    possible_commands = {'response_dollar_total': 'the total dollar amount you bought/sold after fees',
+                         'response_asset_amount': 'the amount of the asset you bought/sold',
+                         'bot_time_to_wait': 'amount of time in the 00:00:00 format (hours:minutes:seconds) that you '
+                                             'would like the bot to wait then start a rescan if you missed the '
+                                             'notification or want to wait it out for whatever reason'}
+    while True:
+        try:
+            user_response = {}
+            for command, help_text in possible_commands.items():
+                user_input = input(f"Enter the {help_text} (Just press enter for no command value): ")
+                user_response[command] = user_input
+            user_response_dict = nof.response_value_assigner(user_response)
+            return user_response_dict
+        except Exception as e:
+            print(f"Invalid menu input: {e}")
+
+
+# Trade log user response setter
+def user_command_response(user_response, order):
+    user_response_dict = {}
+    if order.bot_type == 'desktop_notify' and order.log_trade != 'false':
+        user_response_dict = desktop_notify_menu()
+        # Pass the user response from the response menu function and set that to the user response
+    elif order.bot_type == 'email_notify':
+        email_response_parsed = nof.email_reply_parser(user_response)
+        user_response_dict = nof.response_value_assigner(email_response_parsed)
+    # if wait command in user response email, call the main program procedure after the wait period
+    check_if_wait(user_response_dict)
+    return user_response_dict
 
 
 # Take the email response and see if the user wants to wait or if they made the trade. If they did, log the trade
-def log_trade_check(email_response, order):
-    email_response_parsed = nof.email_reply_parser(email_response)
-    email_response_dict = nof.email_value_assigner(email_response_parsed)
-    # if wait command in user response email, call the main program procedure after the wait period
-    check_if_wait(email_response_dict)
+def log_trade_check(user_response_dict, order):
     if order.log_trade == 'excel':
         lof.check_workbook_existence(lof.workbook_file_path)
-        try:
-            email_dollar_total = float(email_response_dict['email_dollar_total'])
-            email_asset_amount = float(email_response_dict['email_asset_amount'])
-            current_price = asyncio.run(scf.current_price_scan(order.asset))
-            # I need to get the asset sold total and the asset amount sold from the user to correctly log it to
-            # the spreadsheet, the user replied asset sold total should include fees already, so that's the real
-            # returned value
-            if order.start_type == 'sell':
-                dollar_profit_loss = plf.dollar_profit_loss(order.asset_bought_price,
-                                                            current_price,
-                                                            email_asset_amount,
-                                                            email_dollar_total)
-                profit_loss_percent = asyncio.run(
-                    plf.profit_loss_percent(order.asset, order.asset_bought_price)) * 100
-                try:
-                    lof.log_trade(datetime.now(),
-                                  order.start_type,
-                                  order.asset,
-                                  order.asset_bought_price,
-                                  order.amount_bought,
-                                  float(order.asset_bought_price) * float(order.amount_bought),
-                                  current_price,
-                                  email_asset_amount,
-                                  email_dollar_total,
-                                  profit_loss_percent,
-                                  dollar_profit_loss)
-                    lof.calculate_totals()
-                except FileNotFoundError:
-                    print('Workbook does not exist! Check your config file and make sure the workbook exists.')
-                    # Create workbook menu function
-            elif order.start_type == 'buy':
-                try:
-                    lof.log_trade(datetime.now(),
-                                  order.start_type,
-                                  order.asset,
-                                  current_price,
-                                  email_asset_amount,
-                                  email_dollar_total)
-                except FileNotFoundError:
-                    print('Workbook does not exist! Check your config file and make sure the workbook exists.')
-                    # Create workbook menu function
-        except Exception as e:
-            print(f'Error in main program during sell logging to excel spreadsheet: {e}')
+        response_dollar_total = float(user_response_dict['response_dollar_total'])
+        response_asset_amount = float(user_response_dict['response_asset_amount'])
+        current_price = asyncio.run(scf.current_price_scan(order.asset))
+        # I need to get the asset sold total and the asset amount sold from the user to correctly log it to
+        # the spreadsheet, the user replied asset sold total should include fees already, so that's the real
+        # returned value
+        if order.start_type == 'sell':
+            dollar_profit_loss = plf.dollar_profit_loss(order.asset_bought_price,
+                                                        current_price,
+                                                        response_asset_amount,
+                                                        response_dollar_total)
+            profit_loss_percent = asyncio.run(
+                plf.profit_loss_percent(order.asset, order.asset_bought_price)) * 100
+            try:
+                lof.log_trade(datetime.now(),
+                              order.start_type,
+                              order.asset,
+                              order.asset_bought_price,
+                              order.amount_bought,
+                              float(order.asset_bought_price) * float(order.amount_bought),
+                              current_price,
+                              response_asset_amount,
+                              response_dollar_total,
+                              profit_loss_percent,
+                              dollar_profit_loss)
+                lof.calculate_totals()
+            except FileNotFoundError:
+                print('Workbook does not exist! Check your config file and make sure the workbook exists.')
+        elif order.start_type == 'buy':
+            try:
+                lof.log_trade(datetime.now(),
+                              order.start_type,
+                              order.asset,
+                              current_price,
+                              response_asset_amount,
+                              response_dollar_total)
+            except FileNotFoundError:
+                print('Workbook does not exist! Check your config file and make sure the workbook exists.')
     else:
         print('Trade logging skipped...')
-
-
-'''
-Take all the options passed on the command line and assign them to their values. Then, once they are in place,
-ask the user for each option they did not pass. I will then take that input and make it the value of the option for
-the entire click command context. Once the entire click command context is entered, validate the options of the
-options that need additional options, and then prompt the user for those too. Once all options that are required
-have been entered, list all the options out in a number list and ask for user confirmation. If they say no,
-then ask which number from the list they would like to modify and give them a prompt to modify it. After that,
-return to the confirmation menu for the user to confirm. If they confirm, pass the final user options dictionary to
-the main program and create a timestamped log of the one-liner that would replicate the user input commands they
-entered for the trade.
-'''
 
 
 @click.command()
@@ -544,12 +584,13 @@ entered for the trade.
               default="menu")
 # Currently only email based notify, add exchange based trading and atomic wallet GUI manipulation in the future
 @click.option("--bot_type",
-              type=click.Choice(["notify"]),
+              type=click.Choice(["desktop_notify", "email_notify"]),
               help="Specify the type of bot")
 @click.option("--asset",
               type=click.Choice(["bitcoin", "ethereum", "solana", "xrp", "hedera", "cardano", "dogecoin", "shiba-inu"]),
               help="Specify the crypto asset to buy and sell")
 @click.option("--capital",
+              required=False,
               type=click.Choice(["dollars", "tether", "usdc", "dai"]),
               help="The type of capital you wish to buy the asset with and sell the asset for")
 @click.option("--initial_capital",
@@ -649,7 +690,7 @@ entered for the trade.
               required=False,
               type=float,
               help="The number to divide the step gain and loss percentage to make the number more sensitive the higher"
-                   "the profit goes"
+                   " the profit goes"
               )
 @click.option("--ladder_timer_sensitivity",
               required=False,
@@ -667,15 +708,36 @@ entered for the trade.
 @click.option("--history",
               required=False,
               type=click.Choice(["view", "clear"]),
-              callback=lof.read_history,
+              callback=lof.read_command_history,
               help="Prints the content of your command history for this program to the terminal.")
+@click.option("--message_history",
+              required=False,
+              type=click.Choice(["view", "clear"]),
+              callback=lof.read_message_history,
+              help="Prints the contents of the message notifications you recieve in the desktop and email "
+                   "notifications from this program"
+              )
 def main(**kwargs):
+    check_for_config()
     merge_user_inputs(**kwargs)
     print("\n============================================"
           "\nGathered all user input. Starting program..."
           "\n============================================")
     run_program_procedure()
 
+
+# This description if for main ^
+'''
+Take all the options passed on the command line and assign them to their values. Then, once they are in place,
+ask the user for each option they did not pass. It will then take that input and make it the value of the option for
+the entire click command context. Once the entire click command context is entered, validate the options of the
+options that need additional options, and then prompt the user for those too. Once all options that are required
+have been entered, list all the options out in a number list and ask for user confirmation. If they say no,
+then ask which number from the list they would like to modify and give them a prompt to modify it. After that,
+return to the confirmation menu for the user to confirm. If they confirm, pass the final user options dictionary to
+the main program and create a timestamped log of the one-liner that would replicate the user input commands they
+entered for the trade.
+'''
 
 """
  For some ridiculous reason, whatever function defined directly after the click options, when the program is called,
@@ -699,39 +761,52 @@ def run_program_procedure():
     """
     2. Based on initial buy or sell scan, begin the scan protocol to buy or sell. 
     """
+    print("Starting scan...")
     signal = buy_sell_signal_scan(order)
 
     """
-    3. Once a signal is true, calculate how much to sell with profit/loss function or tell the user to buy now
+    3. Once a signal is true, calculate how much to sell with profit/loss function or tell the user to buy or sell now
     and use that information to craft a message for the email notification
     """
     subject, message = None, None
     if signal == 'buy':
-        subject, message = buy_signal_email(order)
+        subject, message = buy_signal_message(order)
     elif signal == 'sell':
-        subject, message = sell_signal_email(order)
+        subject, message = sell_signal_message(order)
+    lof.log_message(message)
 
     """
-    4. Take the values I want in the message and the put them into an email to notify me
+    4. Take the values I want in the message and the put them into an email to notify me or just desktop notify
     """
-    nof.notify_email(subject, message)
+    if order.bot_type == 'desktop_notify':
+        if order.log_trade != 'false':
+            message = message + "\nBot is waiting for input in the terminal you ran it for logging info!"
+        nof.send_desktop_notification(subject, message)
+        if order.log_trade:
+            user_response = user_command_response(None, order)
+            log_trade_check(user_response, order)
 
-    """
-    5. Wait for a response for the email, and if told to wait, wait the specified time. Otherwise, log the trade.
-    Will keep checking until the timeout, which the timeout is set in the config file
-    """
-    email_response = nof.check_email_response()
+    elif order.bot_type == 'email_notify':
+        if config.desktop_notify_with_email is True:
+            nof.send_desktop_notification(subject, message)
+        nof.notify_email(subject, message)
+        """
+        5. Wait for a response for the email, and if told to wait, wait the specified time. Otherwise, log the trade.
+        Will keep checking until the timeout, which the timeout is set in the config file
+        """
+        email_response = nof.check_email_response()
 
-    """
-    6. If an action was taken, log all the info to a spreadsheet and notify the user it completed successfully send
-    all the data to the spreadsheet (different logs if bought or sold). otherwise, if the time expired and the 
-    email response was none, restart the current order monitoring function
-    """
-    if email_response is None:
-        print("No email response, restarting program scanning!\n")
-        run_program_procedure()
-    elif email_response:
-        log_trade_check(email_response, order)
+        """
+        6. If an action was taken, log all the info to a spreadsheet and notify the user it completed successfully send
+        all the data to the spreadsheet (different logs if bought or sold). Otherwise, if the time expired and the 
+        email response was none, restart the current order monitoring function
+        """
+        if email_response is None:
+            print("No email response, restarting program scanning!\n")
+            run_program_procedure()
+        elif email_response:
+            user_response = user_command_response(email_response, order)
+            log_trade_check(user_response, order)
 
 
 if __name__ == '__main__':

@@ -1,5 +1,4 @@
-# Scans that repeatedly look for the desired outcome and returns the value based on the asset given
-import asyncio
+## Scans that repeatedly look for the desired outcome and returns the value based on the asset given
 import time
 import websockets
 import json
@@ -25,7 +24,6 @@ def time_to_seconds(time_string):
 async def connect_websocket():
     uri = "wss://ws-feed.exchange.coinbase.com"
     websocket = await websockets.connect(uri)
-    print("Websocket connection established")
     return websocket
 
 
@@ -58,7 +56,6 @@ async def current_price_scan(asset, websocket=None):
             # Check if message is a ticker message then parse the price
             if 'type' in json_response and json_response['type'] == 'ticker' and 'price' in json_response:
                 current_price = json_response['price']
-                #print("Current price: " + current_price)
                 if one_scan:
                     await websocket.close()
                 return float(current_price)
@@ -74,7 +71,6 @@ async def current_percent_difference(asset, bought_price, websocket):
     try:
         current_price = await current_price_scan(asset, websocket)
         percent_difference = ((float(current_price) / float(bought_price)) - 1) * 100
-        #print(f"Current Percent Difference: {percent_difference}")
         return percent_difference
     except Exception as e:
         print(f"Error in current_percent_difference: {e}")
@@ -84,17 +80,15 @@ async def current_percent_difference(asset, bought_price, websocket):
 # then once the price signal is reached, signals to buy the asset
 async def basic_buy_scan(asset, buy_price):
     # If the price of the asset is met, call the buy asset function
-    buy_signal = False
     websocket = await connect_websocket()
     try:
-        while not buy_signal:
+        while True:
             current_price = await current_price_scan(asset, websocket)
-            if float(buy_price) <= float(current_price):
+            if float(buy_price) >= float(current_price):
                 # Initiate buy function for the asset named
-                print(f"{asset} Bought due to basic buy")
-                buy_signal = True
+                print(f"{asset} buy signal due to basic buy scan")
                 await websocket.close()
-                return buy_signal
+                return True
     except Exception as e:
         print(f"Error in basic_buy_scan: {e}")
 
@@ -124,7 +118,7 @@ def rsi_buy_scan(asset, rsi_buy_number, rsi_drop_limit, rsi_wait_period):
                     rsi = float(re.search(r"\s(\d+\.\d+)\s", row.text).group(1).strip())
                     # In the future save the current row.text then only make it reference that one row once it's found
                     # to be more efficient
-                    print(rsi)
+                    print(f"Current {asset} RSI: {rsi}")
                     if rsi <= rsi_buy_number:
                         # If the buy signal hasn't been activated, activate and start the wait period.
                         if not buy_signal:
@@ -132,7 +126,7 @@ def rsi_buy_scan(asset, rsi_buy_number, rsi_drop_limit, rsi_wait_period):
                         # If the timer expires and the rsi_drop limit has not been reached, buy the asset
                         elif rsi >= rsi_drop_limit:
                             buy_signal = True
-                            print("Bought due to wait period expiring and drop limit not being hit")
+                            print(f"{asset} buy signal due to wait period expiring and drop limit not being hit")
                             return buy_signal
                             # Initiate buy Order
                         else:
@@ -149,15 +143,6 @@ def rsi_buy_scan(asset, rsi_buy_number, rsi_drop_limit, rsi_wait_period):
         driver.quit()
 
 
-"""
-the above all works, but i want to make it headless, add proxy randomization to change the IP address each request, and 
-if the connection is given a captcha, somehow recognize that and try a different proxy or refresh the page.
-"""
-
-# Revival buy function: if an asset is sold due to a stop loss limit initiating the sell, buy back the asset at the
-# price it was sold at by the stop loss. Actually, the above can do that just fine, just need to link the buy price
-# to the stop loss limit last sell price
-
 '''
  Basic sell scan: given the users desired percentage gain from the bought price, send true once that percentage is met
  Bought price is the price you bought it originally, percent wanted is the float number percentage, ie 5.5% is just
@@ -167,19 +152,16 @@ if the connection is given a captcha, somehow recognize that and try a different
 
 
 async def basic_sell_scan(asset, bought_price, percent_wanted, percent_loss_limit):
-    # While the percent wanted is not equal to the current potential profit, set sell signal to false
-    sell_signal = False
+    # While the percent wanted is not equal to the current potential profit
     websocket = await connect_websocket()
-    while not sell_signal:
+    while True:
         # Calculates the potential profit or loss percentage
         percent_difference = await current_percent_difference(asset, bought_price, websocket)
         # If the profit percentage is greater than the desired gains or below the stop loss, sell
         if percent_difference > float(percent_wanted) or percent_difference < -float(percent_loss_limit):
-            sell_signal = True
-            print("Sold to basic sell scan")
+            print(f"{asset} sell signal due to basic sell scan")
             await websocket.close()
-            return sell_signal
-    # return current_percent_difference
+            return True
 
 
 '''
@@ -203,9 +185,8 @@ async def basic_sell_scan(asset, bought_price, percent_wanted, percent_loss_limi
 
 async def ladder_sell_scan(asset, bought_price, percent_wanted, percent_loss_limit, positive_step_gain,
                            negative_step_gain,
-                           timer_duration, sleep_duration, step_sensitivity_value=1, timer_sensitivity_value=1):
+                           timer_duration, sleep_duration=2, step_sensitivity_value=1, timer_sensitivity_value=1):
     negative_step_gain = -negative_step_gain
-    sleep_duration = time_to_seconds(sleep_duration)
     sell_signal = False
     timer_started = False
     change_difference = 0
@@ -213,20 +194,18 @@ async def ladder_sell_scan(asset, bought_price, percent_wanted, percent_loss_lim
     while not sell_signal:
         # Calculates the potential profit or loss percentage
         percent_changed = await current_percent_difference(asset, bought_price, websocket)
-        #print(percent_changed)
-
         # If the percentage profit goes over the percent wanted, begin the ladder
         if percent_changed > percent_wanted and not timer_started:
             # Start the timer, start a while loop that stays on while the timer is going
             end_time = time.time() + time_to_seconds(timer_duration)
             timer_started = True
-            print("timer started")
+            print("Timer started in ladder sell scan as percent wanted has been achieved...")
 
         if timer_started:
             # If the timer expires after the percent wanted has been reached, sell
             if time.time() >= end_time:
                 sell_signal = True
-                print("Sold due to timer expiring")
+                print(f"{asset} sell signal due to timer expiring in ladder sell scan")
                 return sell_signal
             else:
                 time.sleep(sleep_duration)
@@ -236,7 +215,7 @@ async def ladder_sell_scan(asset, bought_price, percent_wanted, percent_loss_lim
                                                                           websocket) - greater_difference
                 # If the positive step gain is reached, reset the time, recalculate the sensitivity values if given
                 if new_percent_difference > positive_step_gain:
-                    print("new percent greater than step gain")
+                    print("New percent greater than step gain!")
                     change_difference = percent_changed + new_percent_difference
                     if step_sensitivity_value != 1:
                         positive_step_gain = positive_step_gain / step_sensitivity_value
@@ -248,14 +227,13 @@ async def ladder_sell_scan(asset, bought_price, percent_wanted, percent_loss_lim
                 # If the negative step value is hit, initiate a sell order
                 elif new_percent_difference < negative_step_gain:
                     sell_signal = True
-                    print("sold due to negative step gain")
+                    print(f"{asset} sell signal due to negative step gain")
                     return sell_signal
         elif percent_changed <= -percent_loss_limit:
             sell_signal = True
-            print("sold due to percent loss limit")
+            print(f"{asset} sell signal due to percent loss limit...")
             return sell_signal
 
 
 if __name__ == '__main__':
-    asyncio.run(basic_buy_scan("hedera", 0.10))
-    #pass
+    pass

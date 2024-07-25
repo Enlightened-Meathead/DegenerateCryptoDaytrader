@@ -1,6 +1,21 @@
 ## Degenerate Crypto Daytrader Config File. If this is the default config, DO NOT ALTER THIS FILE, make a copy and
 # name it config.py
 
+# For now, this config file will just be self contained in the programs directory until I decide if i will be making
+# it a package that can be installed, at which point i will place the config file in the users config directory
+
+# If you do not set email configurations, you can still use this program just as the bot_type of desktop_notify
+
+# The timeout for the desktop notification function before it disappears. If you want your desktop notification to
+# stay up so you for sure see it, set this to 'None'
+#desktop_notification_timeout = None
+desktop_notification_timeout = 30
+
+# Whether you will also get a desktop notification when the notify message is sent if you are using an email
+# to notify you. If you just want the email notification and no desktop notification, set this to False
+#desktop_notify_with_email = False
+desktop_notify_with_email = True
+
 # The email account you would like to remotely authenticate to and send the notifications from. YOU MUST make a
 # separate, standalone email for this program that has no confidential or personal data. This program was designed
 # for use with gmail as the sender, so I highly recommend you just create a gmail account to use for sending the
@@ -14,13 +29,14 @@ sender_email = "@gmail.com"
 # the simple nature of this program, this why I say you MUST create a separate email for this program and not use
 # that email for anything else as this credential is exposed in this file. Granted, your computer should have a
 # strong password at logon, and hopefully a boot password too, so in order to compromise your throwaway email they
-# have to find this app password in the config file, create a python script or modify this programs to pull down your
-# email inbox. Which, if you followed the instructions and made a dedicated throwaway gmail, they just hacked into a
-# big nothing burger. In order to log in to the web client, a would be hacker would need your original account
+# have to find this app password in the config file, then create a python script or modify this programs to pull down
+# your email inbox. Which, if you followed the instructions and made a dedicated throwaway gmail, they just hacked
+# into a big nothing burger. In order to log in to the web client, a would be hacker would need your original account
 # password and your 2FA device, so even if this is found, once again, should be a nothing burger. Plus, if you have
 # someone who broke into your account and is reading your config files for passwords, I think you have bigger
-# problems on your hands ;) In the future I may make this more secure, but for now making a throwaway gmail is easy
-# and the worse that can happen is someone finds your responses, which they probably wouldn't even understand ¯\_(ツ)_/¯
+# problems on your hands ;) In the future I may make this more secure to make it more convenient to just use an
+# existing email, but for now making a throwaway gmail is easy and the worse that can happen is someone finds your
+# responses, which they probably wouldn't even understand ¯\_(ツ)_/¯
 sender_password = "16 digit app password"
 
 # The email account that receives the full sentence notifications from the bot that contains the somewhat sensitive
@@ -56,7 +72,7 @@ email_check_interval = 10
 # $100.00, you would email back t:100,a:0.5 and the email scanner would parse these values to be logged in the
 # spreadsheet if it is done. If you want to change the key values, change those in the dictionary below like
 # 'total':'email_dollar_total'
-email_response_keys = {'t': 'email_dollar_total', 'a': 'email_asset_amount', 'w': 'bot_time_to_wait'}
+user_response_keys = {'t': 'response_dollar_total', 'a': 'response_asset_amount', 'w': 'bot_time_to_wait'}
 
 # In your DCD history file, the alias of the command you want it to write to for the one lines, so you can copy and
 # paste previous trades easier if you change the program alias in you shell.

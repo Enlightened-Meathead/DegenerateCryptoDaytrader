@@ -1,4 +1,4 @@
-# Module for notifying the user when a or buy or sell scan has triggered a signal.
+## Module for notifying the user when a or buy or sell scan has triggered a signal.
 import smtplib
 import imaplib
 import email
@@ -8,6 +8,8 @@ import re
 import gnupg
 from email.mime.text import MIMEText
 from email.header import decode_header
+from plyer import notification
+
 from resources import config
 
 
@@ -69,7 +71,6 @@ def get_plain_text_body(message):
     if message.is_multipart():
         for part in message.get_payload():
             content_type = part.get_content_type()
-            #print(f"Part content type: {content_type}")
             # Recursively check each part for plain text
             result = get_plain_text_body(part)
             if result:
@@ -77,20 +78,19 @@ def get_plain_text_body(message):
     else:
         # If the message is not multipart, check if it is plain text
         content_type = message.get_content_type()
-        #print(f"Message content type: {content_type}")
         if content_type == "text/plain":
             # Decode the body from bytes and return the text value
             return message.get_payload(decode=True).decode()
     return None
 
 
+# Scan for an email response
 def check_email_response(timeout=config.email_check_timeout, check_interval=config.email_check_interval):
     print("Starting email reply checker...")
     email_to_check = config.sender_email
     password = config.sender_password
     search_subject = config.email_subject_check
     end_time = time.time() + timeout
-    #try:
     while time.time() < end_time:
         # Open an ssl connection
         with imaplib.IMAP4_SSL('imap.gmail.com') as mail:
@@ -121,16 +121,14 @@ def check_email_response(timeout=config.email_check_timeout, check_interval=conf
                                 return None
         time.sleep(check_interval)
     print("Email response check timed out!")
-    #except Exception as e:
-    #    print(f"Email function for waiting for response error: {e}")
 
 
+# Get the response, see if told to wait, or try and parse the total amount of capital received for the trade
+# and the asset amount sold
 def email_reply_parser(email_response):
-    # Get the response, see if told to wait, or try and parse the total amount of capital received for the trade
-    # and the asset amount sold
     try:
         email_str = str(email_response)
-        # Each command in the email should be seperated by a comma
+        # Each command in the email should be separated by a comma
         email_values = email_str.split(',')
         email_values_dict = {}
         email_response_dict = {}
@@ -138,44 +136,49 @@ def email_reply_parser(email_response):
             # Split the command into the key value pair using only the first colon
             key, value = value.split(':', 1)
             email_values_dict[key.strip()] = value.strip()
-        for key, value in config.email_response_keys.items():
+        for key, value in config.user_response_keys.items():
             if key in email_values_dict.keys():
-                variable_key_name = config.email_response_keys[key]
+                variable_key_name = config.user_response_keys[key]
                 email_response_dict[variable_key_name] = email_values_dict[key]
         return email_response_dict
     except Exception as e:
         print(f"Unable to convert email response to key value pairs in email_reply_parser: {e}")
 
 
-def email_value_assigner(email_response_dict):
-    email_response_search_patterns = [r'[\d.]+', r'\d{2}:\d{2}:\d{2}']
-    print("User values/commands found in email:")
-    for search_key in config.email_response_keys.values():
-        if search_key in email_response_dict.keys():
-            for pattern in email_response_search_patterns:
-                searched_string = re.search(pattern, email_response_dict[search_key])
+# Take the email repy parser dictionary and extract the commands the user sent in their email
+def response_value_assigner(user_response_dict):
+    response_search_patterns = [r'[\d.]+', r'\d{2}:\d{2}:\d{2}']
+    print("User values/commands found in user response:")
+    for search_key in config.user_response_keys.values():
+        if search_key in user_response_dict.keys():
+            for pattern in response_search_patterns:
+                searched_string = re.search(pattern, user_response_dict[search_key])
                 # if the search key is bot time to wait and the pattern is the first one searching for only floats,
                 # skip it
                 if searched_string:
-                    if search_key == 'bot_time_to_wait' and pattern == email_response_search_patterns[1]:
+                    if search_key == 'bot_time_to_wait' and pattern == response_search_patterns[1]:
                         found_match = searched_string.group()
                         print(f'{search_key}: {found_match}')
-                        email_response_dict[search_key] = found_match
+                        user_response_dict[search_key] = found_match
                     # Yeah, I repeated myself once instead of making a three line function that requires 3 arguments and
-                    # have to assign that return value anyway.
+                    # having to assign that return value anyway.
                     elif search_key != 'bot_time_to_wait':
                         found_match = searched_string.group()
                         print(f'{search_key}: {found_match}')
-                        email_response_dict[search_key] = found_match
-    return email_response_dict
+                        user_response_dict[search_key] = found_match
+    return user_response_dict
+
+
+# Desktop notification for when scan in complete
+def send_desktop_notification(subject, message):
+    timeout = config.desktop_notification_timeout
+    notification.notify(
+        title=subject,
+        message=message,
+        app_name='Degenerate Crypto Daytrader',
+        timeout=timeout
+    )
 
 
 if __name__ == "__main__":
-    #notify_email('dcdt', f"test not encrypt new")
-    #email_response = check_email_response(20, 10)
-    #dict = email_reply_parser(email_response)
-    #print(dict)
-    #m = email_value_assigner(dict)
-    #print(f'final: {m}')
-    #email_value_assigner(email_response)
     pass

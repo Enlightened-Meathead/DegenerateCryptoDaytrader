@@ -1,6 +1,7 @@
 ## Functions that take information from buy and sell orders then log it to a spreadsheet
 import os
 from openpyxl import Workbook, load_workbook
+
 from resources import config
 from datetime import datetime
 
@@ -38,13 +39,12 @@ def create_initial_workbook():
     workbook.save(workbook_file_path)
 
 
+# Calculate the profits, losses, and total net gains in the excel document
 def calculate_totals():
     workbook = load_workbook(workbook_file_path)
-
     sheet = workbook.active
     total_losses = 0
     total_profits = 0
-
     # Get the profit or loss of each row and calculate the total losses, total profits, and net
     incorrect_rows = 0
     for row in sheet.iter_rows(min_row=2, max_row=sheet.max_row, min_col=12, max_col=12, values_only=True):
@@ -75,7 +75,7 @@ def calculate_totals():
         print(f"Error in log_trade trying to save to workbook: {e}")
 
 
-# trade and append it to the trade_log spreadsheet
+# Log the trade and append it to the trade_log spreadsheet
 def log_trade(*args):
     # Load in the workbook and select the main sheet then find the current free row
     try:
@@ -86,7 +86,6 @@ def log_trade(*args):
         # Create a list of values to be appended from arguments passed to the function
         values_to_append = list(args)
         values_to_append = [order_number] + values_to_append
-
         # Add each value to their cells
         for column, value in enumerate(values_to_append, start=1):
             try:
@@ -94,7 +93,6 @@ def log_trade(*args):
             except:
                 pass
             sheet.cell(row=next_row, column=column, value=value)
-        #        print(f"Writing to row: {next_row}, column: {column}, value: {value}")
         # Save the changes to the spreadsheet
         try:
             workbook.save(workbook_file_path)
@@ -106,39 +104,63 @@ def log_trade(*args):
         print("Workbook not found! Error in log_trade function")
 
 
-# Print a one-liner that the user can copy and paste the next time they want to run this trade as a one-liner
+# Sort the one-liner values so click doesn't read one that would cause the menu to start before reading all inputs
+def sort_one_liner(selected_user_options):
+    # The order the options should be interpreted by the click command parser from last to first
+    keys_list = [
+        "menu",
+        "bot_type",
+        "asset",
+        "capital",
+        "initial_capital",
+        "start_type",
+        "log_trade",
+        "sell_order_type",
+        "asset_bought_price",
+        "percent_loss_limit",
+        "profit_loss_function",
+        "buy_order_type",
+        "basic_buy_price",
+        "rsi_buy_number",
+        "rsi_drop_limit",
+        "rsi_wait_period",
+        "basic_sell_profit",
+        "minimum_ladder_profit",
+        "ladder_step_gain",
+        "ladder_step_loss",
+        "ladder_timer_duration",
+        "ladder_step_sensitivity",
+        "ladder_timer_sensitivity",
+        "swing_trade_skim",
+        "history",
+        "message_history"
+    ]
+    # I wrote these after learning about comprehensions if you can't tell ;)
+    sorted_option_keys = sorted(selected_user_options, key=lambda k: keys_list.index(k), reverse=True)
+    sorted_user_options = {k: selected_user_options[k] for k in sorted_option_keys}
+    return sorted_user_options
+
+
+# Repeat the users command options and save it to the history file, so they can copy and paste it and not have to
+# re-enter everything if they made a mistake or want to do a similar trade again in the future
 def repeat_one_liner(selected_user_options):
-    # Make this a config setting that lets the user save what they have their alias to the log file
     program_alias = config.repeat_one_liner_alias
-    command_option_list = []
+    # Take the user options and sort them into the proper order for click
+    sorted_user_options = sort_one_liner(selected_user_options)
     print("\n===========================\nCurrent options one-liner:\n===========================")
     # Add the --option value strings to a list then join the list
-    for option, value in selected_user_options.items():
-        command_option_list.append(f"--{option} {value}")
-    # Take out the menu choice to be last so the callback function doesn't start the menu before it read the inputs
-    menu_choice = command_option_list.pop()
-    # Reverse the user inputs so click doesn't do a callback if the option dependency was defined after the parent
-    command_option_list.reverse()
+    command_option_list = [f"--{option} {value}" for option, value in sorted_user_options.items()]
     command_option_string = ' '.join([string for string in command_option_list])
-    current_one_liner = f'python3 {program_alias}.py {command_option_string} {menu_choice}'
+    current_one_liner = f'python3 {program_alias}.py {command_option_string}'
     print(current_one_liner)
-    # Get a timestamp and write the command to the history log file
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    with open('./resources/dcd_command_history.txt', 'a') as history:
-        history.write(f'\n{timestamp} : {current_one_liner}\n')
-    history.close()
-    # Add in a ring buffer size to the history log file
-    # Man page entry for this function
+    # Only log the one-liner if this function is called from another file
+    if __name__ != "__main__":
+        with open('./resources/dcd_command_history.txt', 'a') as history:
+            history.write(f'\n{timestamp} : {current_one_liner}\n')
 
 
-"""Here is a one-liner of your settings for this trade; if you wish to make " "this exact trade again," "you can copy 
-this command to save somewhere and/or alias it along with different trades you plan on making " "on a frequent basis. 
-This command will be saved to the 'dcd_command_history.txt' in this programs directory. " "Besides manually reading 
-this file, if you would like to print your previous commands, run this program " "with the --history option."""
-
-
-# Read the command history log file
-def read_history(ctx, param, value):
+def read_command_history(ctx, param, value):
     if value == "view":
         with open('resources/dcd_command_history.txt', 'r') as history:
             print(history.read())
@@ -146,13 +168,29 @@ def read_history(ctx, param, value):
             exit()
     elif value == "clear":
         # Open the file with write, which clears the contents of the file
-        with open('./resources/dcd_command_history.txt', 'w') as history:
-            history.close()
+        with open('./resources/dcd_command_history.txt', 'w'):
+            print("Command history cleared!")
+            exit()
+
+
+# Log message notifications to a history file in case the user misses the notification or email
+def log_message(message):
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    with open('./resources/dcd_message_history.txt', 'a') as history:
+        history.write(f"\n{timestamp} : {message}\n")
+
+
+def read_message_history(ctx, param, value):
+    if value == "view":
+        with open('resources/dcd_message_history.txt', 'r') as history:
+            print(history.read())
+            exit()
+    elif value == "clear":
+        # Open the file with write, which clears the contents of the file
+        with open('./resources/dcd_message_history.txt', 'w'):
+            print("Message history cleared!")
             exit()
 
 
 if __name__ == "__main__":
-    #create_initial_workbook()
-    #calculate_totals()
-    check_workbook_existence("/home/stephen/asdfa")
     pass
