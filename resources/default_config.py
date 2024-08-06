@@ -9,7 +9,7 @@
 # The timeout for the desktop notification function before it disappears. If you want your desktop notification to
 # stay up so you for sure see it, set this to 'None'
 #desktop_notification_timeout = None
-desktop_notification_timeout = 30
+desktop_notification_timeout = 3000
 
 # Whether you will also get a desktop notification when the notify message is sent if you are using an email
 # to notify you. If you just want the email notification and no desktop notification, set this to False

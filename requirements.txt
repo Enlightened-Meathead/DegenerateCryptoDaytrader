@@ -1,0 +1,6 @@
+click==8.1.7
+openpyxl==3.1.5
+plyer==2.1.0
+python_gnupg==0.5.2
+selenium==4.22.0
+websockets==12.0

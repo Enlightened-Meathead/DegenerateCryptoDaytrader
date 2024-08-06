@@ -123,6 +123,7 @@ def rsi_buy_scan(asset, rsi_buy_number, rsi_drop_limit, rsi_wait_period):
                         # If the buy signal hasn't been activated, activate and start the wait period.
                         if not buy_signal:
                             buy_signal = True
+                            print('RSI buy number found! Starting wait period...')
                         # If the timer expires and the rsi_drop limit has not been reached, buy the asset
                         elif rsi >= rsi_drop_limit:
                             buy_signal = True
@@ -134,9 +135,10 @@ def rsi_buy_scan(asset, rsi_buy_number, rsi_drop_limit, rsi_wait_period):
                             print("slept due to RSI below the drop limit")
             # If buy signal is false, scan every 60 seconds, but if buy signal is True, then scan for the wait period
             if not buy_signal:
-                time.sleep(20)
+                time.sleep(60)
             elif buy_signal:
                 time.sleep(time_to_seconds(rsi_wait_period))
+
     except Exception as e:
         print(f"Error in rsi_buy_scan: {e}")
     finally:
