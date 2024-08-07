@@ -53,7 +53,7 @@ pip install -r requirements.txt
 
 cd /path/to/this/programs/directory
 
-python -m venv .venv
+python3 -m venv .venv
 
 # On Windows
 
@@ -98,28 +98,37 @@ python3 degenerate_crypto_daytrader.py --basic_buy_price 100_000 --buy_order_typ
 * This program is launched from a terminal using your Python 3 interpreter. From the install steps above, you can launch the program as a script or preface it with 'python' for Windows or 'python3' for Linux to start the program's user menu. If you start the program with no options or arguments passed, you will be presented with a menu to enter the options you'd like to use for the bot.
 1. After starting this program for the first time, a config file named 'config.py' now exists within the program's 'resources' directory. If you want to use email notifications, log your trades with Excel, or change the one liner history alias, take a look at the file and change what needs to be changed. Instructions for each configuration exist within the file itself, or just take a look at the 'default_config.py' in this GitHub repo in the same 'resources' folder.
 
-![[starting.png]]
+![Step 1](resources/readme_pics/step1.png)
     2. Once the config file exists, the program will print a banner and have a series of prompts that you can enter what you want the bot to do. The format is the help page info, then in brackets the options you can exactly type to enter for that option. While most of these options should be self-explanatory, make sure you fully understand what each option does so you don't configure the bot to monitor incorrectly from what you want. You can read what the options are using the --help option after the command or read the in-depth descriptions of the options below in the docs.
 
-![[step2.png]]
+![Step 2](resources/readme_pics/step2.png)
     3. If you have filled out the necessary options the program asks for, you will then be presented with a confirmation menu. If you want to change any option values you have entered, you can type 'yes' and the menu will ask for the index of what option you would like to change. In the example below, I select '3' to change the asset to be looked for to buy, and then change the price to look for in the scan accordingly as well. 
 
-![[step3.png]]
+![Step 3](resources/readme_pics/step3.png)
     4. Once you are sure the options you want are correct, you type 'CONFIRM' and the program will begin.
     5. You may think, gee, that was a lot of typing for one monitoring command! You're right, and that's why there is output of 'Current Options One-Liner' that can be seen in the example above, as well as a history option for this command. If you want to modify or reuse this scan, you can simply copy and paste the full one-liner into the terminal, and all your options are automatically entered into the menu, and then you can just confirm to start the order or modify just what you want rather than retyping things that would be redundant. If you cleared your terminal or the command was run way up in your terminal history, you can use the --history option to get a list of all the output of previously ran commands as one liners. More information on the history option is below in the option guide.
 
-![[step4 1.png]]
+![Step 4](resources/readme_pics/step4.png)
     6. Besides using the menu to enter the options you want and the --history option, you can also type out options directly to the command line with the '--option value' syntax. If you do this, some options require dependent options, such as if you specify the '--order buy' option, you then need to specify which type of buy order scan you would like done, such as '--buy_order_type basic_buy'. Typing full one liners is quite verbose, and generally you would want to use the menu at first unless you become extremely familiar with the program, but if you do want to pass everything as a one liner, you need to know that the Click library, which is used to help collect the options passed at the command line, reads the options from the front of the command to the end, and if you put a parent option before a dependent option, the program will throw an error and trigger the menu for you to manually input the missing option. This is a fault of the Click library and my lack of knowledge initially of how it worked, but if you use the command logged one-liners from the history file or menu output, this problem is solved and all the options are in the correct order to do a one-liner. If you want to skip the menu confirmation and just start the scan, you can pass the '--menu no_menu' option at the end of the one liner for it to skip confirmation. This is useful if you want to alias the command to automatically start buy order scans based on RSI technical indicators instead of changing metrics like price.
     7. Once the scan begins, sit back and wait for your notification and/or email. If you didn't modify the config file and setup email, you can just use the bot as a desktop notifier. In KDE Plasma, you can push desktop notifications to your phone with KDE Connect, so even if you don't want to setup email use for notifications, you can still get notifications to your phone if you're using an OS and programs that support pushed notifications to mobile from your desktop. For a desktop notifier, if you decide to log the trade to a spreadsheet, you can go to the terminal and enter the info it asks of you. For buy and sell orders, it will ask for the dollar amount you bought/sold and the asset amount you bought/sold. If you want to command the bot to wait for a certain period of time and after that time expires restart the scan, you can do that as well. Just press enter for the values that you don't want to pass any values to, so if you log the trade saying you bought $100 of HBAR and that resulted in 1428.57 HBAR tokens, you enter those values, and when you are presented with if you want to instruct the bot to wait, just press enter.
 
-![[step5.png]]
+![Step 5](resources/readme_pics/step5.png)
     8. In this case, we logged the trade to the spreadsheet, which can be found in the 'resources' directory and is named 'trade_log.xlsx'. If you don't have a trade log created, the first time the program tries to append the trade to the log, it will prompt you with a menu to create one.
     9. Once a trade log exists, any future completed scans will be appended to that log file. If you want to delete the trade log spreadsheet, manually delete it from the 'resouces' directory.
 
 ---
 # 📃THE DOCS   
 ### General Tips and Knowledge  
-- If you want to use email for notifications and remote commands, read the config file! If you are going to use email, you at a minimum need a separate throwaway gmail you want to use to be the bot's email.
+- If you want to use email for notifications and remote commands, read the config file! If you are going to use email, you at a minimum need a separate throwaway gmail you want to use to be the bot's email. Also, if you want to use GPG encryption for the email notifications, you may need to set the trust level of the public GPG key manually. I recommend you set the trust level to what you believe is sufficient, but below will work no matter what. Be aware however, that generally giving keys 'ultimate' trust is bad practice, but in my case the email is only used for this bot, so it isn't a threat vector in any reasonable sense. If you have the issue of empty messages when using GPG, go to the resources directory and enter a python3 console, then type the following commands:
+```python
+>>> import gnupg
+>>> gpg = gnupg.GPG()
+>>> import config
+>>> pub = config.public_key
+>>> pub = gpg.import_keys(pub)
+>>> fin = pub.fingerprints[0]
+>>> gpg.trust_keys(fin, 'TRUST_ULTIMATE')
+```
 
 - There are four total scan types: basic_buy, rsi_buy, basic_sell, and ladder. If you want to start easy, just use basic_buy and basic_sell. These scans just identify a price you specify as a trigger point to alert you. For example, if you want to scan for when bitcoin dips below $60k, you can use basic_buy as the buy_order_type and use 60_000 (or 60000, Python parses the underscores out of numbers) for the basic_buy_price, and this will say to the bot, 'Okay, go out there and scan bitcoin for me, and when it hits or dips below $60k, alert me that I should buy'. This works the opposite of sell, but with the same premise. If the basic_sell_percent is 5% when you scan, it will alert you when the price of bitcoin rises above the price you bought it for if the current price is 5% higher.
 
@@ -208,7 +217,7 @@ For each option below, the option is defined, and the values are square brackets
 
 --swing_trade_skim [Float or int] : The percent of the profit percentage you would like to take if you are swing trading. This is like doing a hybrid of a profit harvest and swing trade, where you sell the whole position, but then keep some profits instead of buying all back in. This value is a percent of the profit, so if you gain 5% profits and want to keep half of the overall profits, you would enter 50 for this option value, NOT 2.5. If you do not want to take any profit to skim off, just enter 0 for this.
 ### Email Response Values and Commands  
-- When you respond to the bot using email, compose a new message rather than replying to the email the bot sent you.  
+- When you respond to the bot using email, you can compose a new message or reply to the email the bot sent you.  
 - In the subject of the email, enter 'DCD' (the default). This can be changed to whatever you want in the config file.  
 - Separate each value/command with a comma, such as 't:500,a:20'  
 - Right now, there are only two values DCD needs, and it's only if you are logging a completed buy or sell order.  
