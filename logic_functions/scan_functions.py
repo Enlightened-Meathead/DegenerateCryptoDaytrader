@@ -66,7 +66,6 @@ async def current_price_scan(asset, websocket=None):
                 current_price = json_response['price']
                 if one_scan:
                     await websocket.close()
-                print(current_price)
                 return float(current_price)
         except websockets.exceptions.ConnectionClosed:
             if not one_scan:
@@ -252,5 +251,4 @@ async def ladder_sell_scan(asset, bought_price, percent_wanted, percent_loss_lim
 
 
 if __name__ == '__main__':
-    asyncio.run(basic_sell_scan('bitcoin', 70000, 5, 20))
     pass
