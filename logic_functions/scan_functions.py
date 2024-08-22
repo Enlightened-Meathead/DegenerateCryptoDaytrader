@@ -1,4 +1,5 @@
 ## Scans that repeatedly look for the desired outcome and returns the value based on the asset given
+import asyncio
 import time
 import websockets
 import json
@@ -22,9 +23,16 @@ def time_to_seconds(time_string):
 
 
 async def connect_websocket():
-    uri = "wss://ws-feed.exchange.coinbase.com"
-    websocket = await websockets.connect(uri)
-    return websocket
+    while True:
+        try:
+            uri = "wss://ws-feed.exchange.coinbase.com"
+            websocket = await websockets.connect(uri)
+            print("Connected to websocket!")
+            return websocket
+        except Exception as e:
+            print(f"Error in connect_websocket in the scan function module: {e}")
+            time.sleep(5)
+
 
 
 """
@@ -58,10 +66,12 @@ async def current_price_scan(asset, websocket=None):
                 current_price = json_response['price']
                 if one_scan:
                     await websocket.close()
+                print(current_price)
                 return float(current_price)
         except websockets.exceptions.ConnectionClosed:
             if not one_scan:
                 print("Websocket connection closed unexpectedly. Attempting to reconnect...")
+                await websocket.close()
                 websocket = await connect_websocket()
                 await websocket.send(subscribe_message)
 
@@ -160,10 +170,14 @@ async def basic_sell_scan(asset, bought_price, percent_wanted, percent_loss_limi
         # Calculates the potential profit or loss percentage
         percent_difference = await current_percent_difference(asset, bought_price, websocket)
         # If the profit percentage is greater than the desired gains or below the stop loss, sell
-        if percent_difference > float(percent_wanted) or percent_difference < -float(percent_loss_limit):
-            print(f"{asset} sell signal due to basic sell scan")
-            await websocket.close()
-            return True
+        if percent_difference:
+            if percent_difference > float(percent_wanted) or percent_difference < -float(percent_loss_limit):
+                print(f"{asset} sell signal due to basic sell scan")
+                await websocket.close()
+                return True
+        # If the connection dropped restart the websocket
+        else:
+            websocket = await connect_websocket()
 
 
 '''
@@ -238,4 +252,5 @@ async def ladder_sell_scan(asset, bought_price, percent_wanted, percent_loss_lim
 
 
 if __name__ == '__main__':
+    asyncio.run(basic_sell_scan('bitcoin', 70000, 5, 20))
     pass
