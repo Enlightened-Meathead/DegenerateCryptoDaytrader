@@ -447,6 +447,11 @@ def buy_sell_signal_scan(order):
         exit()
 
 
+# Grab the user response keys and return them as a single string for the email responses
+def get_response_values():
+    return " ".join([f"{k} : {v}" for k, v in config.user_response_keys.items()])
+
+
 # Create email message if buy signal is found
 def buy_signal_message(order):
     print("Buy signal found!")
@@ -455,7 +460,8 @@ def buy_signal_message(order):
     subject = 'DCDB'
     message = (
         f"Buy {amount_to_buy} {order.asset} for the current price of ${current_price} at "
-        f"the time of this message")
+        f"the time of this message. Response values: {get_response_values()}"
+        f"'w': 'bot_time_to_wait'")
     return subject, message
 
 
@@ -479,7 +485,8 @@ def sell_signal_message(order):
     subject = 'DCDS'
     message = (f"Sell {amount_to_sell} of your {order.amount_bought} {order.asset} according to your "
                f"selected {order.profit_loss_function} profit loss function for a current profit/loss of "
-               f"{profit_loss_percent:.2f}% for ${dollar_profit_loss:.2f} of gains/losses")
+               f"{profit_loss_percent:.2f}% for ${dollar_profit_loss:.2f} of gains/losses. Response values: "
+               f"{get_response_values()}")
     if next_buy_amount is not None:
         message = message + (f" and buy ${next_buy_amount} for your next buy order according to your desired profit to "
                              f"skim from your swing trade.")
